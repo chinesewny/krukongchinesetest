@@ -10,12 +10,48 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', sans-serif; }
+        body { font-family: 'Sarabun', sans-serif; user-select: none; -webkit-user-select: none; }
         .glass-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        /* Anti-Screenshot Watermark */
+        .watermark-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 9000;
+            overflow: hidden;
+            opacity: 0.08; /* เพิ่มความเข้มเล็กน้อยเพื่อให้เห็นชัดในรูปถ่าย */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-content: space-around;
+        }
+        .watermark-text {
+            transform: rotate(-45deg);
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin: 50px;
+        }
+        /* Blur content when inactive */
+        body.is-blurred #root {
+            filter: blur(15px) grayscale(100%); /* เพิ่มความเบลอให้มองไม่รู้เรื่องเลย */
+            background-color: #000;
+        }
+        
+        /* Anti-Print: ซ่อนเนื้อหาเมื่อสั่งพิมพ์ */
+        @media print {
+            html, body {
+                display: none !important;
+                background-color: #000 !important;
+            }
+            * {
+                display: none !important;
+            }
         }
     </style>
     <meta name="google" content="notranslate" />
@@ -46,6 +82,8 @@
         const User = (props) => <Icon {...props} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />;
         const CheckCircle = (props) => <Icon {...props} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
         const XCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></>} />;
+        const School = (props) => <Icon {...props} path={<><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></>} />;
+        const EyeOff = (props) => <Icon {...props} path={<><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></>} />;
 
         const { useState, useEffect, useRef } = React;
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwLqt4BQe17ST8aSNzZy78UXZIGL95n7NWux28VrVoqA14Jk9l76Clz3_I8RcgWrII-/exec";
@@ -53,21 +91,39 @@
 
         // --- Loading Overlay Component ---
         const LoadingOverlay = ({ message }) => (
-            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center transition-all duration-300">
-                <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-white/50 animate-bounce-slight max-w-sm w-full mx-4">
-                    <div className="relative mb-6">
-                        <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-sky-50 rounded-full shadow-inner"></div>
-                        </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-800 text-center animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
-                    <p className="text-slate-500 text-sm mt-2 text-center">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
+                <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mb-6"></div>
+                    <h3 className="text-xl font-bold text-slate-800 animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
+                    <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
                 </div>
             </div>
         );
 
-        // --- Reusable Components ---
+        // --- Blackout Overlay (Anti-Screenshot) ---
+        const BlackoutOverlay = () => (
+            <div className="fixed inset-0 bg-black z-[10000] flex items-center justify-center text-white p-8 text-center">
+                <div>
+                    <AlertTriangle size={64} className="mx-auto mb-4 text-red-500 animate-bounce" />
+                    <h2 className="text-3xl font-bold mb-2">ห้ามแคปภาพหน้าจอ!</h2>
+                    <p className="text-gray-400">ระบบได้บันทึกความพยายามในการบันทึกภาพหน้าจอของคุณแล้ว</p>
+                </div>
+            </div>
+        );
+
+        // --- Watermark Component (Anti-Screenshot) ---
+        const Watermark = ({ text }) => {
+            const items = Array.from({ length: 12 });
+            return (
+                <div className="watermark-container">
+                    {items.map((_, i) => (
+                        <div key={i} className="watermark-text">{text}</div>
+                    ))}
+                </div>
+            );
+        };
+
+        // --- Logo Component ---
         const LogoHeader = ({ title, subtitle, className = "" }) => (
             <div className={`flex flex-col items-center mb-8 ${className}`}>
                 <img src={LOGO_URL} alt="Logo" className="w-24 h-auto drop-shadow-md mb-4 animate-float" />
@@ -90,7 +146,7 @@
             const [adminTimeLimitInput, setAdminTimeLimitInput] = useState(5); 
             const [adminClassroomInput, setAdminClassroomInput] = useState('All');
             const [dashboardData, setDashboardData] = useState([]);
-            const [adminElapsedSeconds, setAdminElapsedSeconds] = useState(0); // For Admin Timer
+            const [adminElapsedSeconds, setAdminElapsedSeconds] = useState(0);
             
             // Create Exam
             const [newExam, setNewExam] = useState({ id: '', title: '', time: 60 });
@@ -107,6 +163,8 @@
             const [examStatus, setExamStatus] = useState('pending');
             const [cheatReason, setCheatReason] = useState(null);
             const [score, setScore] = useState(0);
+            const [warningCount, setWarningCount] = useState(0); 
+            const [isBlackout, setIsBlackout] = useState(false); // For screen blackout
             
             const [loading, setLoading] = useState(false);
             const [loadingMessage, setLoadingMessage] = useState('กำลังประมวลผล...'); 
@@ -122,21 +180,39 @@
                 return () => clearInterval(configIntervalRef.current);
             }, []);
 
-            // Admin Timer Effect
             useEffect(() => {
+                let interval;
+                if (step === 'admin_dashboard') {
+                    fetchDashboardData();
+                    interval = setInterval(fetchDashboardData, 5000);
+                }
+                
+                let timerInterval;
                 if (systemConfig.isOpen && systemConfig.examStartMs > 0) {
-                    const interval = setInterval(() => {
+                    timerInterval = setInterval(() => {
                         const now = Date.now();
                         const diff = Math.floor((now - systemConfig.examStartMs) / 1000);
                         setAdminElapsedSeconds(diff >= 0 ? diff : 0);
                     }, 1000);
-                    return () => clearInterval(interval);
                 } else {
                     setAdminElapsedSeconds(0);
                 }
-            }, [systemConfig.isOpen, systemConfig.examStartMs]);
 
-            // --- API Functions ---
+                return () => {
+                    clearInterval(interval);
+                    clearInterval(timerInterval);
+                };
+            }, [step, systemConfig.isOpen, systemConfig.examStartMs]);
+
+            const shuffleArray = (array) => {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            };
+
             const fetchExams = async () => {
                 try {
                     const res = await fetch(`${GAS_API_URL}?action=get_exams&t=${Date.now()}`);
@@ -149,7 +225,6 @@
                 try {
                     const res = await fetch(`${GAS_API_URL}?action=get_config&t=${Date.now()}`);
                     const data = await res.json();
-                    
                     setSystemConfig(prev => {
                         const newConfig = {
                             activeExamId: data.active_exam_id,
@@ -162,14 +237,12 @@
                         if (JSON.stringify(prev) === JSON.stringify(newConfig)) return prev;
                         return newConfig;
                     });
-
                     if ((data.is_open === 'true' || data.is_open === true) && step === 'waiting_room') setStep('instructions');
                 } catch (err) {}
             };
 
-            // --- Admin Logic ---
             const fetchDashboardData = async () => {
-                setLoading(true); setLoadingMessage('กำลังดึงข้อมูลล่าสุด...');
+                if(step !== 'admin_dashboard') setLoading(true); 
                 try {
                     const res = await fetch(`${GAS_API_URL}?action=get_dashboard_data&t=${Date.now()}`);
                     const data = await res.json();
@@ -183,19 +256,14 @@
                 setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
                 try {
                     const now = new Date();
-                    const openedTime = isOpen ? now.toLocaleDateString('th-TH', { 
-                        year: 'numeric', month: 'short', day: 'numeric', 
-                        hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                    }) : '';
+                    const openedTime = isOpen ? now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
                     const startMs = isOpen ? now.getTime() : '';
 
                     setSystemConfig(prev => ({
-                        ...prev,
-                        isOpen: isOpen,
+                        ...prev, isOpen: isOpen,
                         customTimeLimit: isOpen ? parseInt(adminTimeLimitInput) * 60 : prev.customTimeLimit,
                         activeClassroom: isOpen ? adminClassroomInput : prev.activeClassroom,
-                        examOpenedAt: openedTime,
-                        examStartMs: isOpen ? startMs : 0
+                        examOpenedAt: openedTime, examStartMs: isOpen ? startMs : 0
                     }));
 
                     const requests = [];
@@ -212,10 +280,7 @@
                     
                     await Promise.all(requests);
                     await fetchSystemConfig();
-                } catch (err) { 
-                    alert("เกิดข้อผิดพลาดในการบันทึก");
-                    fetchSystemConfig();
-                }
+                } catch (err) { alert("เกิดข้อผิดพลาดในการบันทึก"); fetchSystemConfig(); }
                 setLoading(false);
             };
 
@@ -223,15 +288,12 @@
                 setLoading(true); setLoadingMessage('กำลังเปลี่ยนรายวิชา...');
                 try {
                     setSystemConfig(prev => ({ ...prev, activeExamId: examId, isOpen: false }));
-                    
                     const selected = exams.find(e => String(e.id) === String(examId));
                     if (selected) setAdminTimeLimitInput(selected.timeLimit / 60);
-
                     await Promise.all([
                         fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_config', key: 'is_open', value: false }) }),
                         fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_config', key: 'active_exam_id', value: examId }) })
                     ]);
-
                     await fetchDashboardData();
                     await fetchSystemConfig();
                 } catch (err) { console.error(err); }
@@ -239,29 +301,18 @@
             };
 
             const handleCreateExamSubmit = async () => {
-                if (!newExam.id || !newExam.title || newQuestions.length === 0) {
-                    alert("กรุณากรอกข้อมูลให้ครบและเพิ่มข้อสอบอย่างน้อย 1 ข้อ"); return;
-                }
+                if (!newExam.id || !newExam.title || newQuestions.length === 0) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
                 setLoading(true); setLoadingMessage('กำลังบันทึกชุดข้อสอบ...');
                 try {
-                    await fetch(GAS_API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'create_exam', exam: newExam, questions: newQuestions })
-                    });
+                    await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'create_exam', exam: newExam, questions: newQuestions }) });
                     alert("สร้างข้อสอบสำเร็จ!");
-                    setNewExam({ id: '', title: '', time: 60 });
-                    setNewQuestions([]);
-                    setAdminTab('dashboard');
-                    fetchExams();
+                    setNewExam({ id: '', title: '', time: 60 }); setNewQuestions([]); setAdminTab('dashboard'); fetchExams();
                 } catch (err) { alert("เกิดข้อผิดพลาด"); }
                 setLoading(false);
             };
 
-            // Question Builder Logic
             const addQuestionToDraft = () => {
-                if (!qDraft.text || qDraft.options.some(o => !o.trim())) {
-                    alert("กรุณากรอกคำถามและตัวเลือกให้ครบ"); return;
-                }
+                if (!qDraft.text || qDraft.options.some(o => !o.trim())) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
                 setNewQuestions([...newQuestions, { ...qDraft }]);
                 setQDraft({ text: '', options: ['', ''], correct: 0, mediaType: 'none', mediaContent: '' });
             };
@@ -275,16 +326,19 @@
                 setQDraft(prev => ({ ...prev, options: newOptions, correct: newCorrect }));
             };
 
-            // --- Student Logic ---
             const handleStudentLogin = async (e) => {
                 e.preventDefault(); setLoading(true); setLoadingMessage('กำลังตรวจสอบข้อมูลนักเรียน...'); setError('');
                 try {
                     const res = await fetch(`${GAS_API_URL}?action=check_student&id=${studentIdInput}&t=${Date.now()}`);
                     const data = await res.json();
                     if (data.found) {
-                        const sData = { ...data, classroom: String(data.classroom || "").trim(), assignedExams: data.assignedExams ? data.assignedExams.map(ex => String(ex).trim()) : [] };
+                        const sData = { 
+                            id: studentIdInput, 
+                            name: data.name, surname: data.surname, number: data.number,
+                            classroom: String(data.classroom || "").trim(), 
+                            assignedExams: data.assignedExams ? data.assignedExams.map(ex => String(ex).trim()) : [] 
+                        };
                         const activeId = String(systemConfig.activeExamId).trim();
-                        
                         if (sData.assignedExams.length === 0) { setError('คุณไม่มีสิทธิ์เข้าสอบ'); setLoading(false); return; }
                         if (activeId && !sData.assignedExams.includes(activeId)) {
                             const activeExam = exams.find(ex => String(ex.id).trim() === activeId);
@@ -306,8 +360,19 @@
                 const cleanExamId = String(examId).trim();
                 const found = exams.find(e => String(e.id).trim() === cleanExamId);
                 if (found) {
+                    let processedExam = JSON.parse(JSON.stringify(found));
+                    processedExam.questions = shuffleArray(processedExam.questions);
+                    processedExam.questions = processedExam.questions.map(q => {
+                        const optionsWithMeta = q.options.map((opt, index) => ({ text: opt, isCorrect: index === q.correct }));
+                        const shuffledOptionsWithMeta = shuffleArray(optionsWithMeta);
+                        return {
+                            ...q,
+                            options: shuffledOptionsWithMeta.map(o => o.text),
+                            correct: shuffledOptionsWithMeta.findIndex(o => o.isCorrect)
+                        };
+                    });
                     const effectiveTime = systemConfig.customTimeLimit > 0 ? systemConfig.customTimeLimit : found.timeLimit;
-                    setCurrentExam({ ...found, timeLimit: effectiveTime });
+                    setCurrentExam({ ...processedExam, timeLimit: effectiveTime });
                 } else {
                     setCurrentExam({ id: cleanExamId, title: "กำลังโหลดข้อมูล...", timeLimit: 300, questions: [] });
                 }
@@ -323,20 +388,22 @@
                 }
             }, [systemConfig, step, student]);
 
-            // Exam Flow
-            const startExam = () => {
+            const startExam = async () => {
                 if (!systemConfig.isOpen) { alert("ระบบปิดแล้ว"); window.location.reload(); return; }
-                setTimeLeft(currentExam.timeLimit); setStep('exam'); setExamStatus('active'); setCurrentQIdx(0);
                 
-                answersRef.current = {};
-                setAnswers({});
+                try {
+                    fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({
+                        action: 'submit_exam', studentId: student.id, studentName: `${student.name} ${student.surname}`,
+                        examId: currentExam.id, score: 0, totalScore: currentExam.questions.length, status: 'IN_PROGRESS', reason: 'Started Exam', answers: {}
+                    })});
+                } catch(e) {}
+
+                setTimeLeft(currentExam.timeLimit); setStep('exam'); setExamStatus('active'); setCurrentQIdx(0);
+                answersRef.current = {}; setAnswers({}); setWarningCount(0);
 
                 timerRef.current = setInterval(() => { 
                     setTimeLeft(p => { 
-                        if(p <= 1) { 
-                            submitExam('TimeOut'); 
-                            return 0; 
-                        } 
+                        if(p <= 1) { submitExam('TimeOut'); return 0; } 
                         return p - 1; 
                     }); 
                 }, 1000);
@@ -347,38 +414,76 @@
                 setLoading(true); setLoadingMessage('กำลังส่งคำตอบ...'); 
                 
                 let score = 0;
-                const currentAnswers = answersRef.current;
+                const currentAnswers = answersRef.current || {};
 
                 if(currentExam?.questions) {
-                    currentExam.questions.forEach(q => { 
-                        if(currentAnswers[q.id] === q.correct) score++; 
-                    });
+                    currentExam.questions.forEach(q => { if(currentAnswers[q.id] === q.correct) score++; });
                 }
                 
                 try {
                     await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({
                         action: 'submit_exam', studentId: student.id, studentName: `${student.name} ${student.surname}`,
-                        examId: currentExam.id, score, totalScore: currentExam.questions.length, status: isCheat?'CHEATED':'COMPLETED', reason, answers: currentAnswers
+                        examId: currentExam.id, score, totalScore: currentExam.questions.length, status: isCheat?'CHEATED':(reason==='TimeOut'?'TIMEOUT':'COMPLETED'), reason, answers: currentAnswers
                     })});
-                } catch(e) {}
-                
-                setScore(score); setStep('result'); if(!isCheat) setExamStatus('submitted');
-                setLoading(false);
+
+                    if (isCheat) { alert(`ยุติการสอบเนื่องจากมีการทุจริต (${reason})\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); } 
+                    else if (reason === 'TimeOut') { alert(`หมดเวลาสอบ! ระบบส่งคำตอบอัตโนมัติ\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); } 
+                    else { alert(`บันทึกข้อสอบสำเร็จ!\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); }
+                    window.location.reload();
+                } catch(e) { console.error(e); alert("เกิดข้อผิดพลาด"); setLoading(false); }
             };
 
-            // Anti-Cheat
+            // Anti-Cheat (Blur & Vis & PrintScreen)
             useEffect(() => {
                 if (step !== 'exam') return;
-                const handleVis = () => { if(document.hidden) handleCheatDetection('สลับหน้าจอ (Tab Switch)'); };
-                document.addEventListener('visibilitychange', handleVis);
-                document.addEventListener('contextmenu', e => e.preventDefault());
-                return () => { document.removeEventListener('visibilitychange', handleVis); document.removeEventListener('contextmenu', e => e.preventDefault()); clearInterval(timerRef.current); };
-            }, [step]);
+                
+                const handleCheat = () => {
+                    if (examStatus === 'submitted' || examStatus === 'cheated') return;
+                    
+                    setWarningCount(prev => {
+                        const newCount = prev + 1;
+                        if (newCount <= 2) {
+                            alert(`⚠️ แจ้งเตือนการทำผิดกฎครั้งที่ ${newCount}/2\nห้ามสลับหน้าจอหรือออกจากหน้าสอบ!\n(หากทำผิดครบ 3 ครั้ง ระบบจะตัดสิทธิ์และส่งคะแนนทันที)`);
+                            return newCount;
+                        } else {
+                            submitExam("สลับหน้าจอเกินกำหนด (3 ครั้ง)", true);
+                            return newCount;
+                        }
+                    });
+                };
 
-            const handleCheatDetection = (reason) => {
-                if(examStatus==='submitted'||examStatus==='cheated') return;
-                setCheatReason(reason); setExamStatus('cheated'); submitExam(reason, true);
-            };
+                const handleVis = () => { 
+                    if (document.hidden) handleCheat(); 
+                    else document.body.classList.remove('is-blurred');
+                };
+
+                const handleBlur = () => { document.body.classList.add('is-blurred'); };
+
+                // Key Down Listener for Screenshots
+                const handleKeyDown = (e) => {
+                    if (e.key === 'PrintScreen' || (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4')) || (e.ctrlKey && e.shiftKey && e.key === 'S')) {
+                        setIsBlackout(true);
+                        setTimeout(() => setIsBlackout(false), 2000);
+                        alert("ตรวจพบการพยายามแคปหน้าจอ! การกระทำนี้ถูกบันทึกไว้แล้ว");
+                    }
+                };
+                
+                document.addEventListener('visibilitychange', handleVis);
+                window.addEventListener('blur', handleBlur);
+                window.addEventListener('focus', () => document.body.classList.remove('is-blurred'));
+                document.addEventListener('contextmenu', e => e.preventDefault());
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') setIsBlackout(false); });
+                
+                return () => { 
+                    document.removeEventListener('visibilitychange', handleVis); 
+                    window.removeEventListener('blur', handleBlur);
+                    window.removeEventListener('focus', () => document.body.classList.remove('is-blurred'));
+                    document.removeEventListener('contextmenu', e => e.preventDefault());
+                    document.removeEventListener('keydown', handleKeyDown);
+                    clearInterval(timerRef.current); 
+                };
+            }, [step, examStatus]); 
 
             const handleAdminLogin = async (e) => {
                 e.preventDefault(); setLoading(true); setLoadingMessage('กำลังเข้าสู่ระบบ...'); setError('');
@@ -386,7 +491,6 @@
                 if(d.valid) { setStep('admin_dashboard'); fetchDashboardData(); } else setError('รหัสผิด'); } catch(e){ setError('Error'); } setLoading(false);
             };
 
-            // --- Format Time Helper ---
             const formatTime = (seconds) => {
                 const hrs = Math.floor(seconds / 3600);
                 const mins = Math.floor((seconds % 3600) / 60);
@@ -395,10 +499,13 @@
                 return `${mins}:${secs.toString().padStart(2, '0')}`;
             };
 
-            // --- Render Logic ---
+            // --- Render ---
             return (
                 <>
                     {loading && <LoadingOverlay message={loadingMessage} />}
+                    {isBlackout && <BlackoutOverlay />}
+                    {step === 'exam' && student && <Watermark text={`${student.id} - ${student.name}`} />}
+                    
                     {(() => {
                         if (step === 'admin_dashboard') {
                             const uniqueClassrooms = ['All', ...new Set(dashboardData.map(d => d.classroom).filter(Boolean))].sort();
@@ -408,6 +515,7 @@
                                 total: filteredData.length,
                                 completed: filteredData.filter(d => d.status === 'COMPLETED').length,
                                 cheated: filteredData.filter(d => d.status === 'CHEATED').length,
+                                started: filteredData.filter(d => d.status === 'IN_PROGRESS').length, 
                                 waiting: filteredData.filter(d => !d.status || d.status === 'รอเข้าสอบ').length,
                             };
 
@@ -482,16 +590,10 @@
                                                         </div>
                                                         <div className="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center text-sm border-t border-sky-200 pt-3 gap-2">
                                                             <span className="text-sky-600">สถานะ: <span className={`font-bold ml-2 ${systemConfig.isOpen ? 'text-green-600' : 'text-red-600'}`}>{systemConfig.isOpen ? `เปิดสอบ (${systemConfig.activeClassroom === 'All' ? 'ทุกห้อง' : 'ห้อง ' + systemConfig.activeClassroom})` : 'ปิดรับการสอบ'}</span></span>
-                                                            
                                                             {systemConfig.isOpen && (
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className="bg-white border border-sky-200 px-3 py-1 rounded-full text-xs text-sky-600 flex items-center gap-2">
-                                                                        <Clock size={14}/> เปิดเมื่อ: {systemConfig.examOpenedAt}
-                                                                    </div>
-                                                                    <div className="bg-sky-600 text-white px-3 py-1 rounded-full text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse">
-                                                                        <span>เวลาที่ผ่านไป:</span>
-                                                                        {formatTime(adminElapsedSeconds)}
-                                                                    </div>
+                                                                    <div className="bg-white border border-sky-200 px-3 py-1 rounded-full text-xs text-sky-600 flex items-center gap-2"><Clock size={14}/> เปิดเมื่อ: {systemConfig.examOpenedAt}</div>
+                                                                    <div className="bg-sky-600 text-white px-3 py-1 rounded-full text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse"><span>เวลา:</span>{formatTime(adminElapsedSeconds)}</div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -499,16 +601,32 @@
                                                     <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-700">สถานะผู้เข้าสอบ ({filterClassroom === 'All' ? 'ทุกห้อง' : `ห้อง ${filterClassroom}`})</h3><button onClick={fetchDashboardData} className="text-sm bg-white border px-4 py-2 rounded-lg flex items-center gap-2"><RefreshCw size={14}/> อัปเดต</button></div>
                                                     <div className="grid grid-cols-4 gap-4 mb-6">
                                                         <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-gray-300"><p className="text-xs text-gray-500">รอสอบ</p><p className="text-2xl font-bold">{stats.waiting} <span className="text-sm font-normal text-gray-400">/ {stats.total}</span></p></div>
-                                                        <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500 opacity-50"><p className="text-xs text-gray-500">กำลังสอบ</p><p className="text-sm">-</p></div>
+                                                        <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500"><p className="text-xs text-gray-500">กำลังสอบ</p><p className="text-2xl font-bold text-blue-600">{stats.started}</p></div>
                                                         <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-emerald-500"><p className="text-xs text-gray-500">ส่งแล้ว</p><p className="text-2xl font-bold text-emerald-600">{stats.completed}</p></div>
                                                         <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-red-500"><p className="text-xs text-gray-500">ทุจริต</p><p className="text-2xl font-bold text-red-600">{stats.cheated}</p></div>
                                                     </div>
-                                                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                                        <table className="w-full text-left text-sm">
-                                                            <thead className="bg-slate-50 border-b text-slate-500"><tr><th className="p-4">รหัส</th><th className="p-4">ชื่อ-สกุล</th><th className="p-4">ห้อง</th><th className="p-4 text-center">สถานะ</th><th className="p-4 text-center">คะแนน</th></tr></thead>
-                                                            <tbody className="divide-y divide-slate-100">{filteredData.map((d,i)=>(<tr key={i} className="hover:bg-slate-50"><td className="p-4 font-mono">{d.id}</td><td className="p-4">{d.name} {d.surname}</td><td className="p-4 text-slate-500">{d.classroom}</td><td className="p-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${d.status==='COMPLETED'?'bg-emerald-100 text-emerald-700':d.status==='CHEATED'?'bg-red-100 text-red-700':'bg-slate-100 text-slate-500'}`}>{d.status||'รอสอบ'}</span></td><td className="p-4 text-center font-bold">{d.score!==undefined?d.score:'-'}</td></tr>))}</tbody>
-                                                        </table>
-                                                        {filteredData.length === 0 && <div className="p-8 text-center text-slate-400">ไม่พบรายชื่อนักเรียน</div>}
+                                                    <div className="mt-6">
+                                                        {filteredData.length === 0 ? <div className="p-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-300"><User size={48} className="mx-auto mb-3 opacity-20"/><p>ไม่พบรายชื่อนักเรียน</p></div> : 
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                                {filteredData.map((d, i) => {
+                                                                    const isCompleted = d.status === 'COMPLETED';
+                                                                    const isCheated = d.status === 'CHEATED';
+                                                                    const isInProgress = d.status === 'IN_PROGRESS';
+                                                                    let cardClass = "bg-white border-slate-200 hover:border-slate-300";
+                                                                    let badgeClass = "bg-slate-100 text-slate-500";
+                                                                    let scoreClass = "text-slate-400";
+                                                                    if (isCompleted) { cardClass = "bg-emerald-50/50 border-emerald-200 hover:border-emerald-300"; badgeClass = "bg-emerald-100 text-emerald-700"; scoreClass = "text-emerald-600"; } 
+                                                                    else if (isCheated) { cardClass = "bg-red-50/50 border-red-200 hover:border-red-300"; badgeClass = "bg-red-100 text-red-700"; scoreClass = "text-red-600"; } 
+                                                                    else if (isInProgress) { cardClass = "bg-blue-50/50 border-blue-200 hover:border-blue-300"; badgeClass = "bg-blue-100 text-blue-700 animate-pulse"; scoreClass = "text-blue-600"; }
+                                                                    return (
+                                                                        <div key={i} className={`p-5 rounded-2xl border transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between ${cardClass}`}>
+                                                                            <div><div className="flex justify-between items-start mb-2"><span className="text-xs font-mono font-bold text-slate-400 bg-white/50 px-2 py-0.5 rounded border border-slate-100">#{d.id}</span><span className={`px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${badgeClass}`}>{d.status === 'IN_PROGRESS' ? 'กำลังสอบ' : (d.status || 'รอเข้าสอบ')}</span></div><h4 className="font-bold text-slate-800 text-lg mb-1 truncate" title={`${d.name} ${d.surname}`}>{d.name} {d.surname}</h4><div className="flex items-center gap-2 text-sm text-slate-500 mb-4"><School size={14}/> <span>ห้อง {d.classroom}</span></div></div>
+                                                                            <div className="pt-4 border-t border-slate-200/50 flex items-end justify-between"><div><p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-0.5">คะแนน</p><p className={`text-2xl font-black ${d.score !== undefined ? scoreClass : 'text-slate-300'}`}>{d.score !== undefined ? d.score : '-'}</p></div>{d.reason && <div className="text-right max-w-[60%] pl-2"><p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-0.5">หมายเหตุ</p><p className="text-xs text-red-500 font-medium leading-tight line-clamp-2" title={d.reason}>{d.reason}</p></div>}</div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        }
                                                     </div>
                                                 </>
                                             )}
@@ -525,10 +643,7 @@
                                     <div className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-20 border-b border-slate-200">
                                         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
                                             <div><h1 className="font-bold text-slate-800 text-lg line-clamp-1">{currentExam.title}</h1><p className="text-xs text-slate-500 font-medium">{student.name} {student.surname} ({student.id})</p></div>
-                                            <div className={`flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg shadow-inner ${timeLeft<60?'text-red-600 bg-red-50': 'text-slate-700'}`}>
-                                                <Clock size={20}/> 
-                                                <span>เหลือเวลา {formatTime(timeLeft)}</span>
-                                            </div>
+                                            <div className={`flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg shadow-inner ${timeLeft<60?'text-red-600 bg-red-50': 'text-slate-700'}`}><Clock size={20}/> <span>เหลือเวลา {formatTime(timeLeft)}</span></div>
                                         </div>
                                     </div>
                                     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -540,11 +655,7 @@
                                                 {q.options.map((opt, optIndex) => (
                                                     <label key={optIndex} className={`group flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${answers[q.id] === optIndex ? 'bg-sky-50 border-sky-500 shadow-md' : 'border-slate-100 hover:border-sky-200 hover:bg-slate-50'}`}>
                                                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-colors ${answers[q.id] === optIndex ? 'border-sky-600 bg-sky-600' : 'border-slate-300 group-hover:border-sky-400'}`}>{answers[q.id] === optIndex && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}</div>
-                                                        <input type="radio" className="hidden" name={`q-${q.id}`} checked={answers[q.id] === optIndex} onChange={() => {
-                                                            const newAns = {...answers, [q.id]: optIndex};
-                                                            setAnswers(newAns);
-                                                            answersRef.current = newAns;
-                                                        }} />
+                                                        <input type="radio" className="hidden" name={`q-${q.id}`} checked={answers[q.id] === optIndex} onChange={() => { const newAns = {...answers, [q.id]: optIndex}; setAnswers(newAns); answersRef.current = newAns; }} />
                                                         <span className={`text-lg ${answers[q.id] === optIndex ? 'text-sky-900 font-semibold' : 'text-slate-700'}`}>{opt}</span>
                                                     </label>
                                                 ))}
@@ -554,7 +665,7 @@
                                             <button onClick={() => setCurrentQIdx(prev => Math.max(0, prev - 1))} disabled={currentQIdx === 0} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50"><ChevronLeft size={20}/> ก่อนหน้า</button>
                                             {currentQIdx < currentExam.questions.length - 1 ? 
                                                 <button onClick={() => setCurrentQIdx(prev => prev + 1)} className="px-8 py-3 bg-gradient-to-r from-sky-600 to-blue-700 text-white rounded-xl font-bold hover:shadow-lg flex items-center gap-2">ถัดไป <ChevronRight size={20}/></button> : 
-                                                <button onClick={() => { if(confirm('ยืนยันการส่งคำตอบ?')) submitExam('User Submitted'); }} className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:shadow-lg shadow-emerald-200">ส่งคำตอบ</button>
+                                                <button type="button" onClick={() => { if(window.confirm('ยืนยันการส่งคำตอบ?')) submitExam('User Submitted'); }} className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:shadow-lg shadow-emerald-200 transition-transform transform hover:-translate-y-0.5 active:scale-95">ส่งคำตอบ</button>
                                             }
                                         </div>
                                     </div>
@@ -565,9 +676,34 @@
                         if (step === 'waiting_room') return (<div className="min-h-screen flex items-center justify-center p-4"><div className="glass-card p-10 rounded-2xl shadow-2xl w-full max-w-md text-center"><LogoHeader title="ห้องพักรอสอบ" subtitle="กรุณารอสักครู่..." /><div className="my-8 relative"><div className="absolute inset-0 bg-sky-200 rounded-full animate-ping opacity-20"></div><div className="relative bg-sky-100 p-6 rounded-full text-sky-600 inline-block"><Clock size={48} className="animate-pulse"/></div></div><div className="bg-white/60 p-5 rounded-xl border border-white/50 mb-6"><p className="text-sm text-slate-500 uppercase tracking-wide font-bold mb-1">วิชาที่จะสอบ</p><p className="font-bold text-xl text-slate-800">{currentExam?.title || 'กำลังโหลดข้อมูล...'}</p><div className="mt-3 flex items-center justify-center gap-2 text-sm text-orange-600 font-medium bg-orange-50 py-1.5 px-3 rounded-full mx-auto w-fit"><span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span> รอสัญญาณจากครูผู้คุมสอบ</div></div><button onClick={() => setStep('login')} className="text-slate-400 hover:text-slate-600 text-sm font-medium underline transition">ยกเลิก / ออกจากระบบ</button></div></div>);
                         if (step === 'login') return (<div className="min-h-screen flex flex-col items-center justify-center p-4"><div className="glass-card p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/40 relative overflow-hidden"><button onClick={() => { setStep('admin_login'); setError(''); }} className="absolute top-4 right-4 text-slate-400 hover:text-sky-600 transition p-2 hover:bg-sky-50 rounded-full"><Shield size={20} /></button><LogoHeader title="เข้าสู่ระบบสอบ" subtitle="กรุณากรอกข้อมูลเพื่อยืนยันตัวตน" /><form onSubmit={handleStudentLogin} className="space-y-5"><div><label className="block text-sm font-bold text-slate-700 mb-2 ml-1">รหัสประจำตัวนักเรียน</label><input type="text" value={studentIdInput} onChange={(e) => setStudentIdInput(e.target.value)} className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-sky-100 outline-none shadow-sm text-lg" placeholder="กรอกรหัสเลข 4-5 หลัก" required /></div>{error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-3 border border-red-100 animate-pulse"><AlertTriangle size={18} className="shrink-0"/>{error}</div>}<button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-bold py-3.5 rounded-xl shadow-lg transform transition active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-lg">{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</button></form><p className="text-center text-slate-400 text-xs mt-8">Secure Exam System v2.0 • Powered by React & GAS</p></div></div>);
                         if (step === 'admin_login') return (<div className="min-h-screen flex items-center justify-center p-4"><div className="glass-card p-10 rounded-3xl shadow-2xl w-full max-w-sm border border-white/40"><LogoHeader title="ผู้ดูแลระบบ" subtitle="เฉพาะครูผู้สอนเท่านั้น" className="mb-6"/><form onSubmit={handleAdminLogin} className="space-y-4"><input type="password" value={adminPassword} onChange={e=>setAdminPassword(e.target.value)} className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-sky-100 outline-none text-center tracking-widest text-lg" placeholder="•••••••" autoFocus/>{error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{error}</p>}<button className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">เข้าสู่ระบบ (Admin)</button></form><button onClick={()=>setStep('login')} className="w-full text-sm text-center mt-6 text-slate-500 hover:text-slate-800 font-medium">กลับหน้าสำหรับนักเรียน</button></div></div>);
-                        if (step === 'instructions') return (<div className="min-h-screen flex items-center justify-center p-4"><div className="glass-card p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-white/40"><LogoHeader className="mb-2"/><h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3 border-b pb-4"><Lock className="text-amber-500" /> กฎระเบียบห้องสอบ</h2><div className="bg-sky-50/80 p-5 rounded-2xl mb-6 border border-sky-100"><div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sky-600 shadow-sm"><User size={20}/></div><div><p className="text-xs text-sky-600 uppercase font-bold">ผู้เข้าสอบ</p><p className="text-sky-900 font-bold text-lg">{student.name} {student.surname}</p></div></div><div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sky-600 shadow-sm"><FileText size={20}/></div><div><p className="text-xs text-sky-600 uppercase font-bold">วิชาสอบ</p><p className="text-sky-900 font-bold">{currentExam ? currentExam.title : ''}</p></div></div></div><button onClick={startExam} disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 transform transition hover:-translate-y-1 active:scale-[0.98]">รับทราบและเริ่มทำข้อสอบ</button></div></div>);
-                        if (step === 'result') { const isCheated = examStatus === 'cheated'; return (<div className="min-h-screen flex items-center justify-center p-4"><div className={`glass-card p-10 rounded-3xl shadow-2xl w-full max-w-md text-center border-t-8 ${isCheated ? 'border-red-500' : 'border-emerald-500'}`}><LogoHeader className="mb-4"/><div className="mb-6 flex justify-center"><div className={`p-6 rounded-full shadow-inner ${isCheated ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>{isCheated ? <AlertTriangle size={48} /> : <CheckCircle size={48} />}</div></div><h2 className={`text-3xl font-bold mb-2 ${isCheated ? 'text-red-600' : 'text-emerald-700'}`}>{isCheated ? 'ถูกตัดสิทธิ์การสอบ!' : 'ส่งคำตอบเรียบร้อย'}</h2>{isCheated && <div className="bg-red-50 border border-red-200 p-3 rounded-lg mb-6 text-sm text-red-700 font-semibold">สาเหตุ: {cheatReason}</div>}<div className="py-8 border-y border-slate-100 my-6 bg-slate-50/50 rounded-xl"><p className="text-slate-500 text-sm mb-1 uppercase tracking-wide font-bold">ผู้เข้าสอบ</p><p className="text-slate-800 text-lg font-bold mb-4">{student.name} {student.surname}</p><div className="flex justify-center items-baseline gap-2"><span className="text-6xl font-extrabold text-slate-800 drop-shadow-sm">{score}</span><span className="text-2xl text-slate-400 font-medium">/ {currentExam.questions ? currentExam.questions.length : 0}</span></div><p className="text-slate-400 text-xs mt-2">คะแนนรวมที่ได้</p></div><p className="text-slate-500 text-sm mb-8 flex items-center justify-center gap-2"><CheckCircle size={16} className="text-emerald-500"/> บันทึกข้อมูลลงระบบเรียบร้อยแล้ว</p><button onClick={()=>window.location.reload()} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2"><LogOut size={20}/> ออกจากระบบ</button></div></div>); }
-
+                        if (step === 'instructions') return (
+                            <div className="min-h-screen flex items-center justify-center p-4">
+                                <div className="glass-card p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-white/40">
+                                    <LogoHeader className="mb-2"/>
+                                    <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3 border-b pb-4"><Lock className="text-amber-500" /> กฎระเบียบห้องสอบ</h2>
+                                    <div className="bg-sky-50/80 p-5 rounded-2xl mb-6 border border-sky-100">
+                                        <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sky-600 shadow-sm"><User size={20}/></div><div><p className="text-xs text-sky-600 uppercase font-bold">ผู้เข้าสอบ</p><p className="text-sky-900 font-bold text-lg">{student.name} {student.surname}</p></div></div>
+                                        <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sky-600 shadow-sm"><FileText size={20}/></div><div><p className="text-xs text-sky-600 uppercase font-bold">วิชาสอบ</p><p className="text-sky-900 font-bold">{currentExam ? currentExam.title : ''}</p></div></div>
+                                    </div>
+                                    <div className="space-y-4 mb-8">
+                                        <div className="flex items-start gap-4 p-3 hover:bg-red-50 rounded-xl transition cursor-default">
+                                            <div className="p-2 bg-red-100 text-red-600 rounded-lg"><XCircle size={20}/></div>
+                                            <div><p className="font-bold text-slate-700">ห้ามสลับหน้าจอ (Tab)</p><p className="text-xs text-slate-500">อนุญาตให้กลับเข้าสอบได้ 1 ครั้ง หากทำผิดครั้งที่ 2 ระบบจะส่งคะแนนและตัดสิทธิ์ทันที</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-4 p-3 hover:bg-orange-50 rounded-xl transition cursor-default">
+                                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><AlertTriangle size={20}/></div>
+                                            <div><p className="font-bold text-slate-700">ห้ามแคปภาพหน้าจอ</p><p className="text-xs text-slate-500">ระบบมีการฝังลายน้ำระบุตัวตนบนหน้าจอสอบ</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-4 p-3 hover:bg-blue-50 rounded-xl transition cursor-default">
+                                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Clock size={20}/></div>
+                                            <div><p className="font-bold text-slate-700">เวลาสอบ: {currentExam && currentExam.timeLimit ? Math.floor(currentExam.timeLimit / 60) : '-'} นาที</p><p className="text-xs text-slate-500">ระบบจะส่งคำตอบอัตโนมัติเมื่อหมดเวลา</p></div>
+                                        </div>
+                                    </div>
+                                    <button onClick={startExam} disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 transform transition hover:-translate-y-1 active:scale-[0.98]">รับทราบและเริ่มทำข้อสอบ</button>
+                                </div>
+                            </div>
+                        );
+                        if (step === 'result') { return null; } // Should not reach here due to reload
                         return null;
                     })()}
                 </>
