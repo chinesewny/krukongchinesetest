@@ -24,7 +24,7 @@
             pointer-events: none;
             z-index: 9000;
             overflow: hidden;
-            opacity: 0.08; /* เพิ่มความเข้มเล็กน้อยเพื่อให้เห็นชัดในรูปถ่าย */
+            opacity: 0.08;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
@@ -39,19 +39,11 @@
         }
         /* Blur content when inactive */
         body.is-blurred #root {
-            filter: blur(15px) grayscale(100%); /* เพิ่มความเบลอให้มองไม่รู้เรื่องเลย */
+            filter: blur(15px) grayscale(100%);
             background-color: #000;
         }
-        
-        /* Anti-Print: ซ่อนเนื้อหาเมื่อสั่งพิมพ์ */
         @media print {
-            html, body {
-                display: none !important;
-                background-color: #000 !important;
-            }
-            * {
-                display: none !important;
-            }
+            html, body { display: none !important; background-color: #000 !important; }
         }
     </style>
     <meta name="google" content="notranslate" />
@@ -91,11 +83,16 @@
 
         // --- Loading Overlay Component ---
         const LoadingOverlay = ({ message }) => (
-            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
-                <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center">
-                    <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mb-6"></div>
-                    <h3 className="text-xl font-bold text-slate-800 animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
-                    <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center transition-all duration-300">
+                <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-white/50 animate-bounce-slight max-w-sm w-full mx-4">
+                    <div className="relative mb-6">
+                        <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-8 h-8 bg-sky-50 rounded-full shadow-inner"></div>
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 text-center animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
+                    <p className="text-slate-500 text-sm mt-2 text-center">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
                 </div>
             </div>
         );
@@ -184,7 +181,8 @@
                 let interval;
                 if (step === 'admin_dashboard') {
                     fetchDashboardData();
-                    interval = setInterval(fetchDashboardData, 5000);
+                    // Reduced polling time to 3 seconds for more "real-time" feel
+                    interval = setInterval(fetchDashboardData, 3000);
                 }
                 
                 let timerInterval;
@@ -392,9 +390,17 @@
                 if (!systemConfig.isOpen) { alert("ระบบปิดแล้ว"); window.location.reload(); return; }
                 
                 try {
+                    // Send IN_PROGRESS status
                     fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({
-                        action: 'submit_exam', studentId: student.id, studentName: `${student.name} ${student.surname}`,
-                        examId: currentExam.id, score: 0, totalScore: currentExam.questions.length, status: 'IN_PROGRESS', reason: 'Started Exam', answers: {}
+                        action: 'submit_exam', 
+                        studentId: student.id, 
+                        studentName: `${student.name} ${student.surname}`,
+                        examId: currentExam.id, 
+                        score: 0, 
+                        totalScore: currentExam.questions.length, 
+                        status: 'IN_PROGRESS', 
+                        reason: 'Started Exam', 
+                        answers: {}
                     })});
                 } catch(e) {}
 
@@ -410,27 +416,59 @@
             };
 
             const submitExam = async (reason = 'Normal', isCheat = false) => {
+                // IMPORTANT: Prevent double submission
+                if (examStatus === 'submitted' || examStatus === 'cheated') return;
+
                 clearInterval(timerRef.current);
-                setLoading(true); setLoadingMessage('กำลังส่งคำตอบ...'); 
+                setLoading(true); setLoadingMessage('กำลังบันทึกคำตอบ...'); 
                 
                 let score = 0;
                 const currentAnswers = answersRef.current || {};
+                const currentStatus = isCheat ? 'CHEATED' : (reason === 'TimeOut' ? 'TIMEOUT' : 'COMPLETED');
 
                 if(currentExam?.questions) {
                     currentExam.questions.forEach(q => { if(currentAnswers[q.id] === q.correct) score++; });
                 }
                 
+                // Update local state first to prevent UI interaction
+                setScore(score); 
+                setExamStatus(isCheat ? 'cheated' : 'submitted');
+
                 try {
-                    await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({
-                        action: 'submit_exam', studentId: student.id, studentName: `${student.name} ${student.surname}`,
-                        examId: currentExam.id, score, totalScore: currentExam.questions.length, status: isCheat?'CHEATED':(reason==='TimeOut'?'TIMEOUT':'COMPLETED'), reason, answers: currentAnswers
+                    const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({
+                        action: 'submit_exam', 
+                        studentId: student.id, 
+                        studentName: `${student.name} ${student.surname}`,
+                        examId: currentExam.id, 
+                        score: score, 
+                        totalScore: currentExam.questions.length, 
+                        status: currentStatus, 
+                        reason: reason, 
+                        answers: currentAnswers
                     })});
 
-                    if (isCheat) { alert(`ยุติการสอบเนื่องจากมีการทุจริต (${reason})\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); } 
-                    else if (reason === 'TimeOut') { alert(`หมดเวลาสอบ! ระบบส่งคำตอบอัตโนมัติ\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); } 
-                    else { alert(`บันทึกข้อสอบสำเร็จ!\nคะแนนที่ได้: ${score}/${currentExam.questions.length}`); }
-                    window.location.reload();
-                } catch(e) { console.error(e); alert("เกิดข้อผิดพลาด"); setLoading(false); }
+                    // Ensure we wait for response slightly to confirm save
+                    const result = await response.json(); 
+
+                    setLoading(false); // Stop loading overlay
+
+                    // Show Alert
+                    let msg = "";
+                    if (isCheat) { msg = `ยุติการสอบเนื่องจาก: ${reason}\nคะแนน: ${score}/${currentExam.questions.length}`; } 
+                    else if (reason === 'TimeOut') { msg = `หมดเวลาสอบ! ระบบส่งคำตอบอัตโนมัติ\nคะแนน: ${score}/${currentExam.questions.length}`; } 
+                    else { msg = `บันทึกข้อสอบสำเร็จ!\nคะแนน: ${score}/${currentExam.questions.length}`; }
+
+                    // Small timeout to allow React to render any final state if needed
+                    setTimeout(() => {
+                        alert(msg);
+                        window.location.reload(); // Redirect to login
+                    }, 100);
+
+                } catch(e) { 
+                    console.error(e); 
+                    setLoading(false);
+                    alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาแจ้งผู้คุมสอบ (แต่อย่าปิดหน้าต่างนี้จนกว่าจะได้รับคำแนะนำ)"); 
+                }
             };
 
             // Anti-Cheat (Blur & Vis & PrintScreen)
@@ -459,7 +497,6 @@
 
                 const handleBlur = () => { document.body.classList.add('is-blurred'); };
 
-                // Key Down Listener for Screenshots
                 const handleKeyDown = (e) => {
                     if (e.key === 'PrintScreen' || (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4')) || (e.ctrlKey && e.shiftKey && e.key === 'S')) {
                         setIsBlackout(true);
@@ -643,7 +680,10 @@
                                     <div className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-20 border-b border-slate-200">
                                         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
                                             <div><h1 className="font-bold text-slate-800 text-lg line-clamp-1">{currentExam.title}</h1><p className="text-xs text-slate-500 font-medium">{student.name} {student.surname} ({student.id})</p></div>
-                                            <div className={`flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg shadow-inner ${timeLeft<60?'text-red-600 bg-red-50': 'text-slate-700'}`}><Clock size={20}/> <span>เหลือเวลา {formatTime(timeLeft)}</span></div>
+                                            <div className={`flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg shadow-inner ${timeLeft<60?'text-red-600 bg-red-50': 'text-slate-700'}`}>
+                                                <Clock size={20}/> 
+                                                <span>เหลือเวลา {formatTime(timeLeft)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -655,7 +695,11 @@
                                                 {q.options.map((opt, optIndex) => (
                                                     <label key={optIndex} className={`group flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${answers[q.id] === optIndex ? 'bg-sky-50 border-sky-500 shadow-md' : 'border-slate-100 hover:border-sky-200 hover:bg-slate-50'}`}>
                                                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-colors ${answers[q.id] === optIndex ? 'border-sky-600 bg-sky-600' : 'border-slate-300 group-hover:border-sky-400'}`}>{answers[q.id] === optIndex && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}</div>
-                                                        <input type="radio" className="hidden" name={`q-${q.id}`} checked={answers[q.id] === optIndex} onChange={() => { const newAns = {...answers, [q.id]: optIndex}; setAnswers(newAns); answersRef.current = newAns; }} />
+                                                        <input type="radio" className="hidden" name={`q-${q.id}`} checked={answers[q.id] === optIndex} onChange={() => {
+                                                            const newAns = {...answers, [q.id]: optIndex};
+                                                            setAnswers(newAns);
+                                                            answersRef.current = newAns;
+                                                        }} />
                                                         <span className={`text-lg ${answers[q.id] === optIndex ? 'text-sky-900 font-semibold' : 'text-slate-700'}`}>{opt}</span>
                                                     </label>
                                                 ))}
@@ -665,7 +709,13 @@
                                             <button onClick={() => setCurrentQIdx(prev => Math.max(0, prev - 1))} disabled={currentQIdx === 0} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50"><ChevronLeft size={20}/> ก่อนหน้า</button>
                                             {currentQIdx < currentExam.questions.length - 1 ? 
                                                 <button onClick={() => setCurrentQIdx(prev => prev + 1)} className="px-8 py-3 bg-gradient-to-r from-sky-600 to-blue-700 text-white rounded-xl font-bold hover:shadow-lg flex items-center gap-2">ถัดไป <ChevronRight size={20}/></button> : 
-                                                <button type="button" onClick={() => { if(window.confirm('ยืนยันการส่งคำตอบ?')) submitExam('User Submitted'); }} className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:shadow-lg shadow-emerald-200 transition-transform transform hover:-translate-y-0.5 active:scale-95">ส่งคำตอบ</button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { if(window.confirm('ยืนยันการส่งคำตอบ?')) submitExam('User Submitted'); }} 
+                                                    className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:shadow-lg shadow-emerald-200 transition-transform transform hover:-translate-y-0.5 active:scale-95"
+                                                >
+                                                    ส่งคำตอบ
+                                                </button>
                                             }
                                         </div>
                                     </div>
@@ -703,7 +753,7 @@
                                 </div>
                             </div>
                         );
-                        if (step === 'result') { return null; } // Should not reach here due to reload
+                        if (step === 'result') { return null; }
                         return null;
                     })()}
                 </>
