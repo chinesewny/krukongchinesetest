@@ -38,11 +38,7 @@
             color: #333;
             margin: 50px;
         }
-        /* Blur content when inactive */
-        body.is-blurred #root {
-            filter: blur(15px) grayscale(100%);
-            background-color: #000;
-        }
+        /* REMOVED: Blur content when inactive CSS section */
         @media print {
             html, body { display: none !important; background-color: #000 !important; }
         }
@@ -472,7 +468,7 @@
                 }
             };
 
-            // Anti-Cheat (Blur & Vis & PrintScreen)
+            // Anti-Cheat (Vis & PrintScreen ONLY - BLUR REMOVED)
             useEffect(() => {
                 if (step !== 'exam') return;
                 
@@ -492,11 +488,9 @@
                 };
 
                 const handleVis = () => { 
+                    // Modified: Only check visibility for cheating, DO NOT blur
                     if (document.hidden) handleCheat(); 
-                    else document.body.classList.remove('is-blurred');
                 };
-
-                const handleBlur = () => { document.body.classList.add('is-blurred'); };
 
                 const handleKeyDown = (e) => {
                     if (e.key === 'PrintScreen' || (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4')) || (e.ctrlKey && e.shiftKey && e.key === 'S')) {
@@ -507,16 +501,15 @@
                 };
                 
                 document.addEventListener('visibilitychange', handleVis);
-                window.addEventListener('blur', handleBlur);
-                window.addEventListener('focus', () => document.body.classList.remove('is-blurred'));
+                // REMOVED: window.addEventListener('blur', handleBlur);
+                // REMOVED: window.addEventListener('focus', removeBlur);
                 document.addEventListener('contextmenu', e => e.preventDefault());
                 document.addEventListener('keydown', handleKeyDown);
                 document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') setIsBlackout(false); });
                 
                 return () => { 
                     document.removeEventListener('visibilitychange', handleVis); 
-                    window.removeEventListener('blur', handleBlur);
-                    window.removeEventListener('focus', () => document.body.classList.remove('is-blurred'));
+                    // REMOVED: window.removeEventListener('blur', handleBlur);
                     document.removeEventListener('contextmenu', e => e.preventDefault());
                     document.removeEventListener('keydown', handleKeyDown);
                     clearInterval(timerRef.current); 
