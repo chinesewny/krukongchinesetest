@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสอบออนไลน์ (Secure Exam)</title>
+    <title>ระบบสอบออนไลน์ (Secure Exam) - โรงเรียนวังน้ำเย็นวิทยาคม</title>
     <link rel="icon" href="https://img2.pic.in.th/pic/Logoc404dc85753b800c.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -70,6 +70,7 @@
         const School = (props) => <Icon {...props} path={<><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></>} />;
         const Upload = (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></>} />;
         const HelpCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></>} />;
+        const Download = (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />;
 
         const { useState, useEffect, useRef } = React;
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwLqt4BQe17ST8aSNzZy78UXZIGL95n7NWux28VrVoqA14Jk9l76Clz3_I8RcgWrII-/exec";
@@ -270,6 +271,42 @@
                 setLoading(false);
             };
 
+            // --- ฟังก์ชันส่งออกคะแนนที่เพิ่มเข้ามาใหม่ ---
+            const exportToCSV = () => {
+                const filterRoom = adminClassroomInput;
+                const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom) === String(filterRoom));
+                
+                if (filtered.length === 0) {
+                    alert("ไม่มีข้อมูลที่จะส่งออกในตัวเลือกนี้");
+                    return;
+                }
+
+                const currentSubject = exams.find(e => String(e.id) === String(systemConfig.activeExamId))?.title || systemConfig.activeExamId;
+                const headers = ["Student ID", "Name", "Surname", "Classroom", "Score", "Total", "Status", "Reason"];
+                
+                const rows = filtered.map(d => [
+                    `'${d.id}`, // ป้องกันเลข 0 หายใน Excel
+                    `"${d.name}"`, `"${d.surname}"`, `"${d.classroom}"`, 
+                    d.score !== undefined ? d.score : "-", 
+                    exams.find(e => String(e.id) === String(systemConfig.activeExamId))?.questions.length || "-",
+                    `"${d.status || 'รอเข้าสอบ'}"`, `"${d.reason || '-'}"`
+                ]);
+
+                const csvContent = "\ufeff" + [headers, ...rows].map(e => e.join(",")).join("\n");
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                
+                const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
+                const fileName = `คะแนน_${currentSubject}_ห้อง_${filterRoom === 'All' ? 'ทั้งหมด' : filterRoom}_${dateStr}.csv`;
+                
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             const handleToggleExam = async (isOpen) => {
                 setLoading(true); 
                 setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
@@ -352,21 +389,18 @@
                 const parsedQuestions = [];
                 let currentQ = null;
 
-                // Regex patterns
                 const questionStartRegex = /^(\d+)[\.\)]\s+(.*)/;
                 const optionRegex = /^([a-zA-Zก-ฮ])[\.\)]\s+(.*)/;
                 const answerRegex = /^(เฉลย|Answer|Ans|ans)[:\s]+([a-zA-Zก-ฮ])/i;
 
-                // Map letters to index
                 const letterToIndex = (char) => {
                     const c = char.toLowerCase();
                     const thaiMap = {'ก':0, 'ข':1, 'ค':2, 'ง':3, 'จ':4};
                     if (thaiMap[char]) return thaiMap[char];
-                    return c.charCodeAt(0) - 97; // a=0, b=1...
+                    return c.charCodeAt(0) - 97;
                 };
 
                 lines.forEach(line => {
-                    // Check for Answer Key first
                     const ansMatch = line.match(answerRegex);
                     if (ansMatch) {
                         if (currentQ) {
@@ -377,12 +411,9 @@
                         return;
                     }
 
-                    // Check for New Question
                     const qMatch = line.match(questionStartRegex);
                     if (qMatch) {
-                        // If there was a previous question without explicit answer line, push it (though correct might be wrong default 0)
                         if (currentQ) parsedQuestions.push(currentQ);
-                        
                         currentQ = {
                             text: qMatch[2],
                             options: [],
@@ -393,20 +424,17 @@
                         return;
                     }
 
-                    // Check for Option
                     const optMatch = line.match(optionRegex);
                     if (optMatch && currentQ) {
                         currentQ.options.push(optMatch[2]);
                         return;
                     }
 
-                    // Append text to current question (multiline question support basic)
                     if (currentQ && currentQ.options.length === 0) {
                          currentQ.text += " " + line;
                     }
                 });
                 
-                // Push last question if exists
                 if (currentQ) parsedQuestions.push(currentQ);
 
                 if (parsedQuestions.length > 0) {
@@ -583,7 +611,6 @@
                 }
             };
 
-            // Anti-Cheat (Vis & PrintScreen ONLY)
             useEffect(() => {
                 if (step !== 'exam') return;
                 
@@ -756,7 +783,19 @@
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-700">สถานะผู้เข้าสอบ ({filterClassroom === 'All' ? 'ทุกห้อง' : `ห้อง ${filterClassroom}`})</h3><button onClick={fetchDashboardData} className="text-sm bg-white border px-4 py-2 rounded-lg flex items-center gap-2"><RefreshCw size={14}/> อัปเดต</button></div>
+                                                    <div className="flex justify-between items-center mb-4">
+                                                        <h3 className="font-bold text-slate-700">สถานะผู้เข้าสอบ ({filterClassroom === 'All' ? 'ทุกห้อง' : `ห้อง ${filterClassroom}`})</h3>
+                                                        <div className="flex gap-2">
+                                                            {/* ปุ่มส่งออกที่เพิ่มเข้ามาใหม่โดยยึด UI เดิม */}
+                                                            <button 
+                                                                onClick={exportToCSV} 
+                                                                className="text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-100 transition"
+                                                            >
+                                                                <Download size={14}/> ส่งออกคะแนน (CSV)
+                                                            </button>
+                                                            <button onClick={fetchDashboardData} className="text-sm bg-white border px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 transition"><RefreshCw size={14}/> อัปเดต</button>
+                                                        </div>
+                                                    </div>
                                                     <div className="grid grid-cols-4 gap-4 mb-6">
                                                         <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-gray-300"><p className="text-xs text-gray-500">รอสอบ</p><p className="text-2xl font-bold">{stats.waiting} <span className="text-sm font-normal text-gray-400">/ {stats.total}</span></p></div>
                                                         <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500"><p className="text-xs text-gray-500">กำลังสอบ</p><p className="text-2xl font-bold text-blue-600">{stats.started}</p></div>
