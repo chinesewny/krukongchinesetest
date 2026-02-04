@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสอบออนไลน์ (Secure Exam) - Firestore</title>
+    <title>ระบบสอบออนไลน์ (Secure Exam) - Admin Console</title>
     <link rel="icon" href="https://img2.pic.in.th/pic/Logoc404dc85753b800c.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -28,6 +28,9 @@
             transform: rotate(-45deg); font-size: 20px; font-weight: bold; color: #333; margin: 50px;
         }
         @media print { html, body { display: none !important; background-color: #000 !important; } }
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen text-slate-800 notranslate" translate="no">
@@ -35,7 +38,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhwr9Fxejg1hoAqbSkvUUq_RGZCwCskqc",
@@ -52,7 +55,7 @@
 
         // Expose Firebase to Window for React
         window.db = db;
-        window.fb = { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, query, where };
+        window.fb = { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where };
     </script>
 
     <script type="text/babel">
@@ -65,21 +68,19 @@
         const LogOut = (props) => <Icon {...props} path={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>} />;
         const Shield = (props) => <Icon {...props} path={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></>} />;
         const RefreshCw = (props) => <Icon {...props} path={<><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></>} />;
-        const PlusCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></>} />;
-        const ChevronRight = (props) => <Icon {...props} path={<polyline points="9 18 15 12 9 6"/>} />;
-        const ChevronLeft = (props) => <Icon {...props} path={<polyline points="15 18 9 12 15 6"/>} />;
-        const Settings = (props) => <Icon {...props} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />;
         const Upload = (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></>} />;
         const HelpCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></>} />;
         const Download = (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />;
         const User = (props) => <Icon {...props} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />;
         const XCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></>} />;
-        const School = (props) => <Icon {...props} path={<><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></>} />;
+        const Edit = (props) => <Icon {...props} path={<><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></>} />;
+        const Save = (props) => <Icon {...props} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />;
+        const List = (props) => <Icon {...props} path={<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>} />;
 
         const { useState, useEffect, useRef } = React;
         const LOGO_URL = "https://img2.pic.in.th/pic/Logoc404dc85753b800c.png";
 
-        // --- Common Components ---
+        // --- Components ---
         const LoadingOverlay = ({ message }) => (
             <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
                 <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-white/50 animate-bounce-slight max-w-sm w-full mx-4">
@@ -121,6 +122,25 @@
             </div>
         );
 
+        const EditExamModal = ({ exam, onClose, onSave }) => {
+            const [data, setData] = useState({ title: exam.title, time: exam.timeLimit / 60 });
+            return (
+                <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit size={20} className="text-blue-600"/> แก้ไขรายวิชา: {exam.id}</h3>
+                        <div className="space-y-4">
+                            <div><label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label><input type="text" value={data.title} onChange={e=>setData({...data, title: e.target.value})} className="w-full p-3 border rounded-xl" /></div>
+                            <div><label className="block text-sm font-bold text-slate-600 mb-1">เวลาสอบมาตรฐาน (นาที)</label><input type="number" value={data.time} onChange={e=>setData({...data, time: e.target.value})} className="w-full p-3 border rounded-xl" /></div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button onClick={onClose} className="flex-1 py-2 border rounded-xl text-slate-500 hover:bg-slate-50">ยกเลิก</button>
+                            <button onClick={()=>onSave(exam.id, data)} className="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">บันทึก</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const SecureExamApp = () => {
             // --- State ---
             const [step, setStep] = useState('login'); 
@@ -137,6 +157,7 @@
             const [dashboardData, setDashboardData] = useState([]);
             const [adminElapsedSeconds, setAdminElapsedSeconds] = useState(0);
             const [showTemplateModal, setShowTemplateModal] = useState(false);
+            const [editingExam, setEditingExam] = useState(null); // For Edit Modal
             
             // Create Exam
             const [newExam, setNewExam] = useState({ id: '', title: '', time: 60 });
@@ -164,8 +185,6 @@
             // --- Effects ---
             useEffect(() => {
                 fetchExams();
-                
-                // Real-time System Config Listener
                 const unsub = window.fb.onSnapshot(window.fb.doc(window.db, "config", "system"), (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
@@ -182,43 +201,30 @@
                 return () => unsub();
             }, []);
 
-            // Dashboard Real-time Logic
+            // Dashboard Logic
             useEffect(() => {
                 let unsubSubmissions = null;
-
                 if (step === 'admin_dashboard') {
-                    // 1. Fetch Students (Once)
                     setLoading(true);
                     window.fb.getDocs(window.fb.collection(window.db, "students")).then(snap => {
                         const allStudents = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                        
-                        // 2. Listen to Submissions (Real-time)
                         const subQuery = window.fb.query(window.fb.collection(window.db, "submissions"), window.fb.where("examId", "==", systemConfig.activeExamId || "NONE"));
-                        
                         unsubSubmissions = window.fb.onSnapshot(subQuery, (subSnap) => {
                             const submissions = {};
                             subSnap.forEach(doc => { submissions[doc.data().studentId] = doc.data(); });
-                            
-                            // Merge Data
                             const combined = allStudents.map(std => {
                                 const sub = submissions[std.id];
-                                return {
-                                    ...std,
-                                    score: sub ? sub.score : undefined,
-                                    status: sub ? sub.status : 'รอเข้าสอบ',
-                                    reason: sub ? sub.reason : undefined
-                                };
+                                return { ...std, score: sub ? sub.score : undefined, status: sub ? sub.status : 'รอเข้าสอบ', reason: sub ? sub.reason : undefined };
                             });
                             setDashboardData(combined);
                             setLoading(false);
                         });
                     });
                 }
-
                 return () => { if(unsubSubmissions) unsubSubmissions(); };
             }, [step, systemConfig.activeExamId]);
 
-            // Timer for Admin
+            // Timer
             useEffect(() => {
                 let timerInterval;
                 if (systemConfig.isOpen && systemConfig.examStartMs > 0) {
@@ -226,13 +232,11 @@
                         const diff = Math.floor((Date.now() - systemConfig.examStartMs) / 1000);
                         setAdminElapsedSeconds(diff >= 0 ? diff : 0);
                     }, 1000);
-                } else {
-                    setAdminElapsedSeconds(0);
-                }
+                } else { setAdminElapsedSeconds(0); }
                 return () => clearInterval(timerInterval);
             }, [systemConfig.isOpen, systemConfig.examStartMs]);
 
-            // Auto-Redirect Student
+            // Auto-Redirect
             useEffect(() => {
                 if (step === 'waiting_room' && systemConfig.isOpen && systemConfig.activeExamId) {
                     const configClassroom = String(systemConfig.activeClassroom || 'All').trim();
@@ -260,6 +264,20 @@
                 } catch (err) { console.error("Failed to fetch exams", err); }
             };
 
+            const handleUpdateLiveConfig = async () => {
+                if (!systemConfig.isOpen) return;
+                setLoading(true); setLoadingMessage('กำลังอัปเดตการตั้งค่า...');
+                try {
+                    const configRef = window.fb.doc(window.db, "config", "system");
+                    await window.fb.updateDoc(configRef, {
+                        customTimeLimit: parseInt(adminTimeLimitInput) * 60,
+                        activeClassroom: adminClassroomInput
+                    });
+                    alert("อัปเดตเวลาและห้องเรียบร้อย!");
+                } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
+                setLoading(false);
+            };
+
             const handleToggleExam = async (isOpen) => {
                 setLoading(true); 
                 setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
@@ -285,13 +303,35 @@
                 try {
                     const selected = exams.find(e => String(e.id) === String(examId));
                     if (selected) setAdminTimeLimitInput(selected.timeLimit / 60);
-                    
                     const configRef = window.fb.doc(window.db, "config", "system");
-                    await window.fb.updateDoc(configRef, {
-                        isOpen: false,
-                        activeExamId: examId
-                    });
+                    await window.fb.updateDoc(configRef, { isOpen: false, activeExamId: examId });
                 } catch (err) { console.error(err); }
+                setLoading(false);
+            };
+
+            // --- Manage Exams CRUD ---
+            const handleDeleteExam = async (examId) => {
+                if(!confirm(`ยืนยันการลบวิชา ${examId}? การกระทำนี้ไม่สามารถย้อนกลับได้`)) return;
+                setLoading(true);
+                try {
+                    await window.fb.deleteDoc(window.fb.doc(window.db, "exams", examId));
+                    alert("ลบวิชาสำเร็จ");
+                    fetchExams();
+                } catch(e) { alert("Error: "+e.message); }
+                setLoading(false);
+            };
+
+            const handleUpdateExam = async (examId, newData) => {
+                setLoading(true);
+                try {
+                    await window.fb.updateDoc(window.fb.doc(window.db, "exams", examId), {
+                        title: newData.title,
+                        timeLimit: parseInt(newData.time) * 60
+                    });
+                    alert("แก้ไขสำเร็จ");
+                    setEditingExam(null);
+                    fetchExams();
+                } catch(e) { alert("Error: "+e.message); }
                 setLoading(false);
             };
 
@@ -357,7 +397,7 @@
                         questions: newQuestions
                     });
                     alert("สร้างข้อสอบสำเร็จ!");
-                    setNewExam({ id: '', title: '', time: 60 }); setNewQuestions([]); setAdminTab('dashboard'); fetchExams();
+                    setNewExam({ id: '', title: '', time: 60 }); setNewQuestions([]); setAdminTab('manage_exams'); fetchExams();
                 } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
                 setLoading(false);
             };
@@ -370,8 +410,6 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const sData = { id: docSnap.id, ...data };
-                        
-                        // Validation
                         const activeId = String(systemConfig.activeExamId).trim();
                         if (!sData.assignedExams || !sData.assignedExams.includes(activeId)) {
                             setError(`คุณไม่มีสิทธิ์สอบวิชานี้`); setLoading(false); return;
@@ -380,7 +418,6 @@
                         if (cfgRoom !== 'All' && cfgRoom !== sData.classroom) {
                             setError(`เปิดสอบเฉพาะห้อง ${cfgRoom}`); setLoading(false); return;
                         }
-
                         setStudent(sData);
                         if (systemConfig.isOpen) { prepareExam(activeId); setStep('instructions'); }
                         else setStep('waiting_room');
@@ -408,10 +445,7 @@
                 setTimeLeft(currentExam.timeLimit); setStep('exam'); setExamStatus('active'); setCurrentQIdx(0);
                 answersRef.current = {}; setAnswers({}); setWarningCount(0);
                 timerRef.current = setInterval(() => { 
-                    setTimeLeft(p => { 
-                        if(p <= 1) { submitExam('TimeOut'); return 0; } 
-                        return p - 1; 
-                    }); 
+                    setTimeLeft(p => { if(p <= 1) { submitExam('TimeOut'); return 0; } return p - 1; }); 
                 }, 1000);
             };
 
@@ -419,30 +453,16 @@
                 if (examStatus === 'submitted' || examStatus === 'cheated') return;
                 clearInterval(timerRef.current);
                 setLoading(true); setLoadingMessage('กำลังบันทึกคำตอบ...'); 
-                
                 let score = 0;
                 const currentAnswers = answersRef.current || {};
                 const currentStatus = isCheat ? 'CHEATED' : (reason === 'TimeOut' ? 'TIMEOUT' : 'COMPLETED');
-
-                if(currentExam?.questions) {
-                    currentExam.questions.forEach(q => { if(currentAnswers[q.id] === q.correct) score++; });
-                }
-                
+                if(currentExam?.questions) { currentExam.questions.forEach(q => { if(currentAnswers[q.id] === q.correct) score++; }); }
                 setScore(score); setExamStatus(isCheat ? 'cheated' : 'submitted');
-
                 try {
                     await window.fb.setDoc(window.fb.doc(window.db, "submissions", `${student.id}_${currentExam.id}`), {
-                        studentId: student.id,
-                        studentName: `${student.name} ${student.surname}`,
-                        examId: currentExam.id,
-                        score: score,
-                        totalScore: currentExam.questions.length,
-                        status: currentStatus,
-                        reason: reason,
-                        answers: currentAnswers,
-                        submittedAt: new Date().toISOString()
+                        studentId: student.id, studentName: `${student.name} ${student.surname}`, examId: currentExam.id,
+                        score: score, totalScore: currentExam.questions.length, status: currentStatus, reason: reason, answers: currentAnswers, submittedAt: new Date().toISOString()
                     });
-                    
                     alert(`บันทึกสำเร็จ!\nคะแนน: ${score}/${currentExam.questions.length}`);
                     window.location.reload();
                 } catch(e) { console.error(e); alert("เกิดข้อผิดพลาดในการบันทึก: " + e.message); setLoading(false); }
@@ -460,32 +480,17 @@
                     });
                 };
                 const handleVis = () => { if (document.hidden) handleCheat(); };
-                const handleKeyDown = (e) => {
-                    if (e.key === 'PrintScreen' || (e.ctrlKey && e.shiftKey && e.key === 'S')) {
-                        setIsBlackout(true); setTimeout(() => setIsBlackout(false), 2000); alert("ตรวจพบการพยายามแคปหน้าจอ");
-                    }
-                };
-                document.addEventListener('visibilitychange', handleVis);
-                document.addEventListener('contextmenu', e => e.preventDefault());
-                document.addEventListener('keydown', handleKeyDown);
-                return () => { 
-                    document.removeEventListener('visibilitychange', handleVis); 
-                    document.removeEventListener('contextmenu', e => e.preventDefault());
-                    document.removeEventListener('keydown', handleKeyDown);
-                    clearInterval(timerRef.current); 
-                };
+                const handleKeyDown = (e) => { if (e.key === 'PrintScreen' || (e.ctrlKey && e.shiftKey && e.key === 'S')) { setIsBlackout(true); setTimeout(() => setIsBlackout(false), 2000); alert("ตรวจพบการพยายามแคปหน้าจอ"); } };
+                document.addEventListener('visibilitychange', handleVis); document.addEventListener('contextmenu', e => e.preventDefault()); document.addEventListener('keydown', handleKeyDown);
+                return () => { document.removeEventListener('visibilitychange', handleVis); document.removeEventListener('contextmenu', e => e.preventDefault()); document.removeEventListener('keydown', handleKeyDown); clearInterval(timerRef.current); };
             }, [step, examStatus]); 
 
             const exportToCSV = () => {
                 const filterRoom = adminClassroomInput;
                 const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom) === String(filterRoom));
                 if (filtered.length === 0) { alert("ไม่มีข้อมูล"); return; }
-
                 const headers = ["ID", "Name", "Surname", "Class", "Score", "Status", "Reason"];
-                const rows = filtered.map(d => [
-                    `'${d.id}`, `"${d.name}"`, `"${d.surname}"`, `"${d.classroom}"`, 
-                    d.score !== undefined ? d.score : "-", `"${d.status || 'รอสอบ'}"`, `"${d.reason || '-'}"`
-                ]);
+                const rows = filtered.map(d => [ `'${d.id}`, `"${d.name}"`, `"${d.surname}"`, `"${d.classroom}"`, d.score !== undefined ? d.score : "-", `"${d.status || 'รอสอบ'}"`, `"${d.reason || '-'}"` ]);
                 const csvContent = "\ufeff" + [headers, ...rows].map(e => e.join(",")).join("\n");
                 const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
                 const link = document.createElement("a");
@@ -493,22 +498,16 @@
                 link.click();
             };
 
-            // Login Handlers
             const handleAdminLogin = (e) => { e.preventDefault(); if(adminPassword === 'admin1234') { setStep('admin_dashboard'); } else { alert('รหัสผิด'); } };
-            
-            // --- Helper to add question draft ---
-            const addQuestionToDraft = () => {
-                if (!qDraft.text || qDraft.options.some(o => !o.trim())) return alert("กรอกข้อมูลให้ครบ");
-                setNewQuestions([...newQuestions, { ...qDraft }]);
-                setQDraft({ text: '', options: ['', ''], correct: 0, mediaType: 'none', mediaContent: '' });
-            };
+            const addQuestionToDraft = () => { if (!qDraft.text || qDraft.options.some(o => !o.trim())) return alert("กรอกข้อมูลให้ครบ"); setNewQuestions([...newQuestions, { ...qDraft }]); setQDraft({ text: '', options: ['', ''], correct: 0, mediaType: 'none', mediaContent: '' }); };
 
-            // Render Logic
+            // Render
             return (
                 <>
                     {loading && <LoadingOverlay message={loadingMessage} />}
                     {isBlackout && <BlackoutOverlay />}
                     {showTemplateModal && <TemplateModal onClose={() => setShowTemplateModal(false)} />}
+                    {editingExam && <EditExamModal exam={editingExam} onClose={()=>setEditingExam(null)} onSave={handleUpdateExam} />}
                     {step === 'exam' && student && <Watermark text={`${student.id} - ${student.name}`} />}
                     
                     {step === 'login' && (
@@ -542,13 +541,37 @@
                         <div className="min-h-screen p-4 md:p-8">
                             <div className="max-w-6xl mx-auto glass-card rounded-2xl shadow-2xl min-h-[80vh] overflow-hidden">
                                 <div className="bg-white/50 p-6 border-b flex justify-between items-center">
-                                    <div className="flex gap-4"><button onClick={()=>setAdminTab('dashboard')} className={`font-bold ${adminTab==='dashboard'?'text-blue-600':'text-slate-500'}`}>Dashboard</button><button onClick={()=>setAdminTab('create_exam')} className={`font-bold ${adminTab==='create_exam'?'text-blue-600':'text-slate-500'}`}>สร้างข้อสอบ</button></div>
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>setAdminTab('dashboard')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='dashboard'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>Dashboard</button>
+                                        <button onClick={()=>setAdminTab('manage_exams')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='manage_exams'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>จัดการคลังข้อสอบ</button>
+                                        <button onClick={()=>setAdminTab('create_exam')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='create_exam'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>สร้างข้อสอบใหม่</button>
+                                    </div>
                                     <button onClick={()=>{setStep('login'); setAdminPassword('');}}><LogOut size={20}/></button>
                                 </div>
                                 <div className="p-6">
-                                    {adminTab === 'create_exam' ? (
-                                        <div className="space-y-6">
-                                            {/* Import Section */}
+                                    {adminTab === 'manage_exams' && (
+                                        <div className="animate-fade-in">
+                                            <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2"><List size={20}/> รายวิชาทั้งหมดในระบบ</h3>
+                                            <div className="grid gap-4">
+                                                {exams.map(ex => (
+                                                    <div key={ex.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-1"><span className="bg-slate-100 text-slate-600 font-mono font-bold px-2 py-0.5 rounded text-sm">{ex.id}</span> <span className="font-bold text-lg text-slate-800">{ex.title}</span></div>
+                                                            <div className="text-slate-500 text-sm flex gap-4"><span>เวลา: {ex.timeLimit/60} นาที</span><span>จำนวน: {ex.questions?.length || 0} ข้อ</span></div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button onClick={()=>setEditingExam(ex)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 flex items-center gap-2"><Edit size={16}/> แก้ไข</button>
+                                                            <button onClick={()=>handleDeleteExam(ex.id)} className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 flex items-center gap-2"><Trash size={16}/> ลบ</button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {exams.length === 0 && <div className="text-center p-8 text-slate-400">ยังไม่มีรายวิชา</div>}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {adminTab === 'create_exam' && (
+                                        <div className="space-y-6 animate-fade-in">
                                             <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100 flex items-center justify-between">
                                                 <div className="flex items-center gap-3"><FileText size={24} className="text-emerald-600"/><div><h3 className="font-bold text-emerald-900">นำเข้าจาก Word</h3><p className="text-sm text-emerald-700">อัปโหลด .docx</p></div></div>
                                                 <div className="flex gap-2">
@@ -556,13 +579,11 @@
                                                     <label className="bg-emerald-600 text-white px-4 py-2 rounded-lg cursor-pointer flex gap-2"><Upload size={18}/> เลือกไฟล์ <input type="file" ref={fileInputRef} accept=".docx" onChange={handleFileSelect} className="hidden" /></label>
                                                 </div>
                                             </div>
-                                            {/* Create Form */}
                                             <div className="bg-sky-50 p-6 rounded-xl border border-sky-100 grid grid-cols-3 gap-4">
                                                 <input type="text" placeholder="รหัสวิชา (ID)" value={newExam.id} onChange={e=>setNewExam({...newExam, id: e.target.value})} className="p-3 border rounded-lg" />
                                                 <input type="text" placeholder="ชื่อวิชา" value={newExam.title} onChange={e=>setNewExam({...newExam, title: e.target.value})} className="p-3 border rounded-lg" />
                                                 <input type="number" placeholder="เวลา (นาที)" value={newExam.time} onChange={e=>setNewExam({...newExam, time: e.target.value})} className="p-3 border rounded-lg" />
                                             </div>
-                                            {/* Add Question Manual */}
                                             <div className="bg-white p-6 rounded-xl border">
                                                 <h3 className="font-bold mb-4">เพิ่มข้อสอบ ({newQuestions.length + 1})</h3>
                                                 <input type="text" placeholder="คำถาม..." value={qDraft.text} onChange={e=>setQDraft({...qDraft, text: e.target.value})} className="w-full p-3 border rounded-lg mb-4" />
@@ -574,16 +595,21 @@
                                             </div>
                                             <div className="pt-6 border-t"><button onClick={handleCreateExamSubmit} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">บันทึกชุดข้อสอบ</button></div>
                                         </div>
-                                    ) : (
-                                        <>
-                                            {/* Control Panel */}
+                                    )}
+
+                                    {adminTab === 'dashboard' && (
+                                        <div className="animate-fade-in">
                                             <div className="bg-slate-50 p-6 rounded-xl mb-6 grid grid-cols-4 gap-4 items-end">
                                                 <div><label className="text-xs font-bold block mb-2">วิชา</label><select value={systemConfig.activeExamId} onChange={(e)=>handleChangeExamSubject(e.target.value)} className="w-full p-3 border rounded-xl">{exams.map(e=><option key={e.id} value={e.id}>{e.id} {e.title}</option>)}</select></div>
                                                 <div><label className="text-xs font-bold block mb-2">ห้อง</label><input type="text" value={adminClassroomInput} onChange={e=>setAdminClassroomInput(e.target.value)} className="w-full p-3 border rounded-xl"/></div>
                                                 <div><label className="text-xs font-bold block mb-2">เวลา (นาที)</label><input type="number" value={adminTimeLimitInput} onChange={e=>setAdminTimeLimitInput(e.target.value)} className="w-full p-3 border rounded-xl"/></div>
-                                                <button onClick={()=>handleToggleExam(!systemConfig.isOpen)} className={`w-full p-3 rounded-xl font-bold text-white ${systemConfig.isOpen ? 'bg-red-500' : 'bg-green-500'}`}>{systemConfig.isOpen ? 'ปิดสอบ' : 'เปิดสอบ'}</button>
+                                                <div className="flex gap-2">
+                                                    {systemConfig.isOpen ? 
+                                                        <button onClick={handleUpdateLiveConfig} className="flex-1 p-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 text-sm">อัปเดต</button> : null
+                                                    }
+                                                    <button onClick={()=>handleToggleExam(!systemConfig.isOpen)} className={`flex-1 p-3 rounded-xl font-bold text-white ${systemConfig.isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>{systemConfig.isOpen ? 'ปิดสอบ' : 'เปิดสอบ'}</button>
+                                                </div>
                                             </div>
-                                            {/* Stats & List */}
                                             <div className="flex justify-between mb-4"><h3 className="font-bold">รายชื่อนักเรียน</h3><button onClick={exportToCSV} className="text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 flex gap-2"><Download size={16}/> Export CSV</button></div>
                                             <div className="grid grid-cols-4 gap-4">
                                                 {dashboardData.filter(d => adminClassroomInput === 'All' || d.classroom === adminClassroomInput).map((d, i) => (
@@ -594,7 +620,7 @@
                                                     </div>
                                                 ))}
                                             </div>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
