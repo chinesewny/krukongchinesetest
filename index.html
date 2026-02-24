@@ -16,21 +16,25 @@
         .glass-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.6);
         }
         .watermark-container {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none; z-index: 9000; overflow: hidden; opacity: 0.08;
+            pointer-events: none; z-index: 9000; opacity: 0.08;
             display: flex; flex-wrap: wrap; justify-content: space-around; align-content: space-around;
         }
-        .watermark-text {
-            transform: rotate(-45deg); font-size: 20px; font-weight: bold; color: #333; margin: 50px;
-        }
+        .watermark-text { transform: rotate(-45deg); font-size: 20px; font-weight: bold; color: #333; margin: 50px; }
         @media print { html, body { display: none !important; background-color: #000 !important; } }
-        /* Animation */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen text-slate-800 notranslate" translate="no">
@@ -41,8 +45,8 @@
         import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBhwr9Fxejg1hoAqbSkvUUq_RGZCwCskqc",
-            authDomain: "chinesetest2-68.firebaseapp.com",
+            apiKey: "", 
+            authDomain: "chinesetest2-68.firebaseapp.app",
             databaseURL: "https://chinesetest2-68-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chinesetest2-68",
             storageBucket: "chinesetest2-68.firebasestorage.app",
@@ -52,8 +56,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // Expose Firebase to Window for React
         window.db = db;
         window.fb = { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where };
     </script>
@@ -76,16 +78,21 @@
         const Edit = (props) => <Icon {...props} path={<><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></>} />;
         const Save = (props) => <Icon {...props} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />;
         const List = (props) => <Icon {...props} path={<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>} />;
+        const Trash = (props) => <Icon {...props} path={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>} />;
+        const Eye = (props) => <Icon {...props} path={<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>} />;
+        const BookOpen = (props) => <Icon {...props} path={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} />;
+        const Layout = (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></>} />;
+        const Plus = (props) => <Icon {...props} path={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
 
         const { useState, useEffect, useRef } = React;
         const LOGO_URL = "https://img2.pic.in.th/pic/Logoc404dc85753b800c.png";
 
         // --- Components ---
         const LoadingOverlay = ({ message }) => (
-            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center text-center">
                 <div className="bg-white/95 p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-white/50 animate-bounce-slight max-w-sm w-full mx-4">
                     <div className="relative mb-6"><div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div></div>
-                    <h3 className="text-xl font-bold text-slate-800 text-center animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
+                    <h3 className="text-xl font-bold text-slate-800 animate-pulse">{message || 'กำลังประมวลผล...'}</h3>
                 </div>
             </div>
         );
@@ -109,12 +116,58 @@
             </div>
         );
 
+        const ViewExamModal = ({ exam, onClose }) => {
+            if (!exam) return null;
+            return (
+                <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-in relative" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> ตรวจสอบข้อสอบ</h3>
+                                <p className="text-sm text-slate-500 mt-1">{exam.id} - {exam.title}</p>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors"><XCircle size={24}/></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-8 bg-white text-slate-800">
+                            {exam.questions?.map((q, idx) => (
+                                <React.Fragment key={idx}>
+                                    {q.sectionTitle && (
+                                        <div className="bg-blue-600 text-white p-3 rounded-lg font-bold shadow-sm flex items-center gap-2">
+                                            <Layout size={18}/> {q.sectionTitle}
+                                        </div>
+                                    )}
+                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                        {q.passage && q.passagePosition !== 'bottom' && (
+                                            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 text-sm italic whitespace-pre-wrap"><BookOpen size={14} className="inline mr-2 text-amber-600"/>{q.passage}</div>
+                                        )}
+                                        <p className="font-bold text-lg mb-4">{idx + 1}. {q.text}</p>
+                                        {q.passage && q.passagePosition === 'bottom' && (
+                                            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mt-4 text-sm italic whitespace-pre-wrap"><BookOpen size={14} className="inline mr-2 text-amber-600"/>{q.passage}</div>
+                                        )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                            {q.options.map((opt, oIdx) => (
+                                                <div key={oIdx} className={`p-3 rounded-xl border flex items-center gap-3 ${oIdx === q.correct ? 'bg-green-100 border-green-300 text-green-800 font-bold':'bg-white text-slate-600 border-slate-200'}`}>
+                                                    <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-xs">{String.fromCharCode(3601 + oIdx)}</span>
+                                                    <span>{opt}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                        <div className="p-4 border-t bg-slate-50 text-right"><button onClick={onClose} className="px-8 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all active:scale-95">ปิดหน้าต่าง</button></div>
+                    </div>
+                </div>
+            );
+        };
+
         const TemplateModal = ({ onClose }) => (
             <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                    <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><XCircle size={24}/></button>
+                    <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"><XCircle size={24}/></button>
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="text-sky-600"/> รูปแบบไฟล์ Word</h3>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm font-mono text-slate-700 mb-4 overflow-x-auto">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm font-mono text-slate-700 mb-4 overflow-x-auto leading-relaxed">
                         <p>1. โจทย์ข้อที่หนึ่ง?</p><p>ก. ตัวเลือก 1</p><p>ข. ตัวเลือก 2</p><p>ค. ตัวเลือก 3</p><p>ง. ตัวเลือก 4</p><p className="font-bold text-green-600">เฉลย: ข</p>
                     </div>
                     <button onClick={onClose} className="mt-6 w-full bg-sky-600 text-white py-2 rounded-xl font-bold hover:bg-sky-700">เข้าใจแล้ว</button>
@@ -122,19 +175,115 @@
             </div>
         );
 
+        // --- Advanced Editor Modal ---
         const EditExamModal = ({ exam, onClose, onSave }) => {
             const [data, setData] = useState({ title: exam.title, time: exam.timeLimit / 60 });
+            const [questions, setQuestions] = useState(exam.questions || []);
+
+            const handleUpdateQuestion = (idx, field, value) => {
+                const updated = [...questions];
+                updated[idx] = { ...updated[idx], [field]: value };
+                setQuestions(updated);
+            };
+
+            const handleUpdateOption = (qIdx, oIdx, value) => {
+                const updated = [...questions];
+                const opts = [...updated[qIdx].options];
+                opts[oIdx] = value;
+                updated[qIdx].options = opts;
+                setQuestions(updated);
+            };
+
+            const addQuestion = () => {
+                setQuestions([...questions, { 
+                    id: Date.now() + Math.random(), 
+                    text: '', 
+                    options: ['', '', '', ''], 
+                    correct: 0, 
+                    sectionTitle: '', 
+                    passage: '', 
+                    passagePosition: 'top' 
+                }]);
+            };
+
+            const removeQuestion = (idx) => {
+                if(confirm('ลบข้อสอบข้อนี้?')) {
+                    const updated = questions.filter((_, i) => i !== idx);
+                    setQuestions(updated);
+                }
+            };
+
             return (
-                <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
-                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit size={20} className="text-blue-600"/> แก้ไขรายวิชา: {exam.id}</h3>
-                        <div className="space-y-4">
-                            <div><label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label><input type="text" value={data.title} onChange={e=>setData({...data, title: e.target.value})} className="w-full p-3 border rounded-xl" /></div>
-                            <div><label className="block text-sm font-bold text-slate-600 mb-1">เวลาสอบมาตรฐาน (นาที)</label><input type="number" value={data.time} onChange={e=>setData({...data, time: e.target.value})} className="w-full p-3 border rounded-xl" /></div>
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[9998] flex items-center justify-center p-4 md:p-10">
+                    <div className="bg-white rounded-[2rem] max-w-5xl w-full h-full flex flex-col shadow-2xl animate-fade-in text-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Edit size={24} className="text-blue-600"/> แก้ไขข้อสอบขั้นสูง</h3>
+                                <p className="text-sm text-slate-500">รหัสวิชา: {exam.id}</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-colors"><XCircle size={32}/></button>
                         </div>
-                        <div className="mt-6 flex gap-3">
-                            <button onClick={onClose} className="flex-1 py-2 border rounded-xl text-slate-500 hover:bg-slate-50">ยกเลิก</button>
-                            <button onClick={()=>onSave(exam.id, data)} className="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">บันทึก</button>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                            <section className="bg-slate-100 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase mb-2">ชื่อวิชา</label>
+                                    <input type="text" value={data.title} onChange={e=>setData({...data, title: e.target.value})} className="w-full p-4 border rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase mb-2">เวลาสอบ (นาที)</label>
+                                    <input type="number" value={data.time} onChange={e=>setData({...data, time: parseInt(e.target.value) || 0})} className="w-full p-4 border rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" />
+                                </div>
+                            </section>
+
+                            <section className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h4 className="font-black text-lg text-slate-500 uppercase tracking-widest">คำถามทั้งหมด ({questions.length})</h4>
+                                    <button onClick={addQuestion} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"><Plus size={18}/> เพิ่มข้อใหม่</button>
+                                </div>
+
+                                {questions.map((q, idx) => (
+                                    <div key={idx} className="bg-white border-2 border-slate-100 p-6 rounded-3xl space-y-4 relative group">
+                                        <button onClick={() => removeQuestion(idx)} className="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash size={20}/></button>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="md:col-span-2">
+                                                <label className="text-[10px] font-black text-blue-500 uppercase mb-1 block">ตอนที่ (Section Title)</label>
+                                                <input type="text" value={q.sectionTitle || ''} onChange={e=>handleUpdateQuestion(idx, 'sectionTitle', e.target.value)} placeholder="เช่น ตอนที่ 1: การอ่าน" className="w-full p-3 border rounded-xl bg-blue-50/30 text-sm focus:ring-1 focus:ring-blue-300 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="text-[10px] font-black text-amber-600 uppercase mb-1 block">บทความ (Passage)</label>
+                                                <textarea rows="2" value={q.passage || ''} onChange={e=>handleUpdateQuestion(idx, 'passage', e.target.value)} placeholder="เนื้อหาสำหรับอ่านประกอบคำถาม..." className="w-full p-3 border rounded-xl bg-amber-50/30 text-sm focus:ring-1 focus:ring-amber-300 outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">ตำแหน่งบทความ</label>
+                                                <select value={q.passagePosition || 'top'} onChange={e=>handleUpdateQuestion(idx, 'passagePosition', e.target.value)} className="w-full p-2 border rounded-xl text-xs outline-none">
+                                                    <option value="top">บทความอยู่บน</option>
+                                                    <option value="bottom">บทความอยู่ล่าง</option>
+                                                </select>
+                                            </div>
+                                            <div className="md:col-span-2 pt-2 border-t border-slate-50">
+                                                <label className="text-xs font-black text-slate-800 uppercase mb-2 block">คำถามข้อที่ {idx+1}</label>
+                                                <input type="text" value={q.text} onChange={e=>handleUpdateQuestion(idx, 'text', e.target.value)} placeholder="พิมพ์โจทย์..." className="w-full p-4 border-2 border-slate-100 rounded-2xl font-bold focus:border-blue-500 outline-none" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                            {q.options.map((opt, oIdx) => (
+                                                <div key={oIdx} className="flex gap-2 items-center">
+                                                    <input type="radio" checked={q.correct === oIdx} onChange={() => handleUpdateQuestion(idx, 'correct', oIdx)} className="w-4 h-4 accent-green-600 cursor-pointer" />
+                                                    <input type="text" value={opt} onChange={e=>handleUpdateOption(idx, oIdx, e.target.value)} className={`flex-1 p-3 border rounded-xl text-sm outline-none transition-all ${q.correct === oIdx ? 'bg-green-50 border-green-200 font-bold':'focus:border-blue-200'}`} placeholder={`ตัวเลือก ${oIdx+1}`} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </section>
+                        </div>
+
+                        <div className="p-6 border-t bg-slate-50 flex gap-4">
+                            <button onClick={onClose} className="flex-1 py-4 bg-white border-2 border-slate-200 rounded-2xl font-black hover:bg-slate-100 transition-all text-slate-600">ยกเลิก</button>
+                            <button onClick={()=>onSave(exam.id, { ...data, questions })} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl hover:bg-green-700 transition-all active:scale-95 flex justify-center items-center gap-2"><Save size={24}/> บันทึกการเปลี่ยนแปลงทั้งหมด</button>
                         </div>
                     </div>
                 </div>
@@ -142,66 +291,43 @@
         };
 
         const SecureExamApp = () => {
-            // --- State ---
             const [step, setStep] = useState('login'); 
             const [student, setStudent] = useState(null);
             const [studentIdInput, setStudentIdInput] = useState('');
             const [adminPassword, setAdminPassword] = useState('');
             const [exams, setExams] = useState([]);
             const [currentExam, setCurrentExam] = useState(null);
-            
-            // Admin
             const [adminTab, setAdminTab] = useState('dashboard');
             const [adminTimeLimitInput, setAdminTimeLimitInput] = useState(5); 
             const [adminClassroomInput, setAdminClassroomInput] = useState('All');
             const [dashboardData, setDashboardData] = useState([]);
-            const [adminElapsedSeconds, setAdminElapsedSeconds] = useState(0);
             const [showTemplateModal, setShowTemplateModal] = useState(false);
-            const [editingExam, setEditingExam] = useState(null); // For Edit Modal
-            
-            // Create Exam
+            const [editingExam, setEditingExam] = useState(null); 
+            const [viewingExam, setViewingExam] = useState(null); 
             const [newExam, setNewExam] = useState({ id: '', title: '', time: 60 });
             const [newQuestions, setNewQuestions] = useState([]);
-            const [qDraft, setQDraft] = useState({ text: '', options: ['', ''], correct: 0, mediaType: 'none', mediaContent: '' });
-
+            const [qDraft, setQDraft] = useState({ text: '', options: ['', '', '', ''], correct: 0, sectionTitle: '', passage: '', passagePosition: 'top' });
             const [systemConfig, setSystemConfig] = useState({ activeExamId: '', isOpen: false, customTimeLimit: 0, activeClassroom: 'All', examOpenedAt: '', examStartMs: 0 });
-            
-            // Exam Execution
             const [currentQIdx, setCurrentQIdx] = useState(0); 
             const [timeLeft, setTimeLeft] = useState(0);
             const [answers, setAnswers] = useState({});
             const answersRef = useRef({}); 
             const [examStatus, setExamStatus] = useState('pending');
-            const [score, setScore] = useState(0);
             const [warningCount, setWarningCount] = useState(0); 
             const [isBlackout, setIsBlackout] = useState(false);
-            
             const [loading, setLoading] = useState(false);
-            const [loadingMessage, setLoadingMessage] = useState('กำลังประมวลผล...'); 
+            const [loadingMessage, setLoadingMessage] = useState(''); 
             const [error, setError] = useState('');
             const timerRef = useRef(null);
-            const fileInputRef = useRef(null);
 
-            // --- Effects ---
             useEffect(() => {
                 fetchExams();
                 const unsub = window.fb.onSnapshot(window.fb.doc(window.db, "config", "system"), (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data();
-                        setSystemConfig({
-                            activeExamId: data.activeExamId,
-                            isOpen: data.isOpen,
-                            customTimeLimit: data.customTimeLimit || 0,
-                            activeClassroom: data.activeClassroom || 'All',
-                            examOpenedAt: data.examOpenedAt || '',
-                            examStartMs: data.examStartMs || 0
-                        });
-                    }
-                });
+                    if (doc.exists()) setSystemConfig(doc.data());
+                }, (err) => console.error("Firestore Error:", err));
                 return () => unsub();
             }, []);
 
-            // Dashboard Logic
             useEffect(() => {
                 let unsubSubmissions = null;
                 if (step === 'admin_dashboard') {
@@ -212,139 +338,60 @@
                         unsubSubmissions = window.fb.onSnapshot(subQuery, (subSnap) => {
                             const submissions = {};
                             subSnap.forEach(doc => { submissions[doc.data().studentId] = doc.data(); });
-                            const combined = allStudents.map(std => {
+                            setDashboardData(allStudents.map(std => {
                                 const sub = submissions[std.id];
-                                return { ...std, score: sub ? sub.score : undefined, status: sub ? sub.status : 'รอเข้าสอบ', reason: sub ? sub.reason : undefined };
-                            });
-                            setDashboardData(combined);
+                                return { ...std, score: sub?.score, status: sub?.status || 'รอเข้าสอบ', reason: sub?.reason };
+                            }));
+                            setLoading(false);
+                        }, (err) => {
+                            console.error("Dashboard Snapshot Error:", err);
                             setLoading(false);
                         });
+                    }).catch(err => {
+                        console.error("Fetch Students Error:", err);
+                        setLoading(false);
                     });
                 }
-                return () => { if(unsubSubmissions) unsubSubmissions(); };
+                return () => unsubSubmissions?.();
             }, [step, systemConfig.activeExamId]);
 
-            // Timer
-            useEffect(() => {
-                let timerInterval;
-                if (systemConfig.isOpen && systemConfig.examStartMs > 0) {
-                    timerInterval = setInterval(() => {
-                        const diff = Math.floor((Date.now() - systemConfig.examStartMs) / 1000);
-                        setAdminElapsedSeconds(diff >= 0 ? diff : 0);
-                    }, 1000);
-                } else { setAdminElapsedSeconds(0); }
-                return () => clearInterval(timerInterval);
-            }, [systemConfig.isOpen, systemConfig.examStartMs]);
-
-            // Auto-Redirect
             useEffect(() => {
                 if (step === 'waiting_room' && systemConfig.isOpen && systemConfig.activeExamId) {
-                    const configClassroom = String(systemConfig.activeClassroom || 'All').trim();
-                    if(configClassroom === 'All' || configClassroom === String(student.classroom).trim()) {
+                    const cfgRoom = String(systemConfig.activeClassroom || 'All').trim();
+                    if(cfgRoom === 'All' || cfgRoom === String(student?.classroom)) {
                         prepareExam(systemConfig.activeExamId);
                         setStep('instructions');
                     }
                 }
             }, [systemConfig, step, student]);
 
-            const shuffleArray = (array) => {
-                const newArray = [...array];
-                for (let i = newArray.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-                }
-                return newArray;
-            };
-
             const fetchExams = async () => {
                 try {
                     const snap = await window.fb.getDocs(window.fb.collection(window.db, "exams"));
-                    const list = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    setExams(list);
-                } catch (err) { console.error("Failed to fetch exams", err); }
+                    setExams(snap.docs.map(d => ({id: d.id, ...d.data()})));
+                } catch (err) {
+                    console.error("Fetch Exams Error:", err);
+                }
             };
 
-            const handleUpdateLiveConfig = async () => {
-                if (!systemConfig.isOpen) return;
-                setLoading(true); setLoadingMessage('กำลังอัปเดตการตั้งค่า...');
-                try {
-                    const configRef = window.fb.doc(window.db, "config", "system");
-                    await window.fb.updateDoc(configRef, {
-                        customTimeLimit: parseInt(adminTimeLimitInput) * 60,
-                        activeClassroom: adminClassroomInput
-                    });
-                    alert("อัปเดตเวลาและห้องเรียบร้อย!");
-                } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
-                setLoading(false);
+            const shuffleArray = (arr) => {
+                const n = [...arr];
+                for (let i = n.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [n[i], n[j]] = [n[j], n[i]];
+                }
+                return n;
             };
 
-            const handleToggleExam = async (isOpen) => {
-                setLoading(true); 
-                setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
-                try {
-                    const now = new Date();
-                    const openedTime = isOpen ? now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
-                    const startMs = isOpen ? now.getTime() : 0;
-                    
-                    const configRef = window.fb.doc(window.db, "config", "system");
-                    await window.fb.updateDoc(configRef, {
-                        isOpen: isOpen,
-                        customTimeLimit: isOpen ? parseInt(adminTimeLimitInput) * 60 : systemConfig.customTimeLimit,
-                        activeClassroom: isOpen ? adminClassroomInput : systemConfig.activeClassroom,
-                        examOpenedAt: openedTime,
-                        examStartMs: startMs
-                    });
-                } catch (err) { alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message); }
-                setLoading(false);
-            };
-
-            const handleChangeExamSubject = async (examId) => {
-                setLoading(true); setLoadingMessage('กำลังเปลี่ยนรายวิชา...');
-                try {
-                    const selected = exams.find(e => String(e.id) === String(examId));
-                    if (selected) setAdminTimeLimitInput(selected.timeLimit / 60);
-                    const configRef = window.fb.doc(window.db, "config", "system");
-                    await window.fb.updateDoc(configRef, { isOpen: false, activeExamId: examId });
-                } catch (err) { console.error(err); }
-                setLoading(false);
-            };
-
-            // --- Manage Exams CRUD ---
-            const handleDeleteExam = async (examId) => {
-                if(!confirm(`ยืนยันการลบวิชา ${examId}? การกระทำนี้ไม่สามารถย้อนกลับได้`)) return;
-                setLoading(true);
-                try {
-                    await window.fb.deleteDoc(window.fb.doc(window.db, "exams", examId));
-                    alert("ลบวิชาสำเร็จ");
-                    fetchExams();
-                } catch(e) { alert("Error: "+e.message); }
-                setLoading(false);
-            };
-
-            const handleUpdateExam = async (examId, newData) => {
-                setLoading(true);
-                try {
-                    await window.fb.updateDoc(window.fb.doc(window.db, "exams", examId), {
-                        title: newData.title,
-                        timeLimit: parseInt(newData.time) * 60
-                    });
-                    alert("แก้ไขสำเร็จ");
-                    setEditingExam(null);
-                    fetchExams();
-                } catch(e) { alert("Error: "+e.message); }
-                setLoading(false);
-            };
-
-            // --- Word Import ---
             const handleFileSelect = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
                 setLoading(true); setLoadingMessage('กำลังอ่านไฟล์ Word...');
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    mammoth.extractRawText({arrayBuffer: e.target.result})
+                reader.onload = (e) => {
+                    mammoth.extractRawText({ arrayBuffer: e.target.result })
                         .then(result => { parseImportedText(result.value); setLoading(false); })
-                        .catch(err => { console.error(err); alert("อ่านไฟล์ไม่สำเร็จ"); setLoading(false); });
+                        .catch(err => { alert("อ่านไฟล์ไม่สำเร็จ"); setLoading(false); });
                 };
                 reader.readAsArrayBuffer(file);
                 event.target.value = null;
@@ -352,273 +399,347 @@
 
             const parseImportedText = (text) => {
                 const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                const parsedQuestions = [];
+                const parsed = [];
                 let currentQ = null;
-                const questionStartRegex = /^(\d+)[\.\)]\s+(.*)/;
-                const optionRegex = /^([a-zA-Zก-ฮ])[\.\)]\s+(.*)/;
-                const answerRegex = /^(เฉลย|Answer|Ans|ans)[:\s]+([a-zA-Zก-ฮ])/i;
                 const letterToIndex = (char) => {
                     const c = char.toLowerCase();
-                    const thaiMap = {'ก':0, 'ข':1, 'ค':2, 'ง':3, 'จ':4};
-                    return thaiMap[char] !== undefined ? thaiMap[char] : c.charCodeAt(0) - 97;
+                    const map = {'ก':0, 'ข':1, 'ค':2, 'ง':3, 'จ':4};
+                    return map[char] !== undefined ? map[char] : c.charCodeAt(0) - 97;
                 };
 
                 lines.forEach(line => {
-                    const ansMatch = line.match(answerRegex);
-                    if (ansMatch && currentQ) { currentQ.correct = letterToIndex(ansMatch[2]); parsedQuestions.push(currentQ); currentQ = null; return; }
-                    
-                    const qMatch = line.match(questionStartRegex);
+                    const qMatch = line.match(/^(\d+)[\.\)]\s+(.*)/);
+                    const ansMatch = line.match(/^(เฉลย|Answer|Ans)[:\s]+([a-zA-Zก-ฮ])/i);
+                    const optMatch = line.match(/^([a-zA-Zก-ฮ])[\.\)]\s+(.*)/);
+
                     if (qMatch) {
-                        if (currentQ) parsedQuestions.push(currentQ);
-                        currentQ = { text: qMatch[2], options: [], correct: 0, mediaType: 'none', mediaContent: '' };
-                        return;
+                        if (currentQ) parsed.push(currentQ);
+                        currentQ = { id: Date.now()+Math.random(), text: qMatch[2], options: [], correct: 0, passage: '', sectionTitle: '' };
+                    } else if (ansMatch && currentQ) {
+                        currentQ.correct = letterToIndex(ansMatch[2]);
+                    } else if (optMatch && currentQ) {
+                        currentQ.options.push(optMatch[2]);
+                    } else if (currentQ && currentQ.options.length === 0) {
+                        currentQ.text += " " + line;
                     }
-
-                    const optMatch = line.match(optionRegex);
-                    if (optMatch && currentQ) { currentQ.options.push(optMatch[2]); return; }
-
-                    if (currentQ && currentQ.options.length === 0) currentQ.text += " " + line;
                 });
-                if (currentQ) parsedQuestions.push(currentQ);
-
-                if (parsedQuestions.length > 0) {
-                    setNewQuestions(prev => [...prev, ...parsedQuestions]);
-                    alert(`นำเข้าสำเร็จ ${parsedQuestions.length} ข้อ`);
-                } else alert("ไม่พบข้อสอบในรูปแบบที่กำหนด");
+                if (currentQ) parsed.push(currentQ);
+                if (parsed.length > 0) {
+                    setNewQuestions(prev => [...prev, ...parsed]);
+                    alert(`นำเข้าสำเร็จ ${parsed.length} ข้อ`);
+                } else alert("ไม่พบรูปแบบข้อสอบที่รองรับ");
             };
 
             const handleCreateExamSubmit = async () => {
-                if (!newExam.id || !newExam.title || newQuestions.length === 0) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
-                setLoading(true); setLoadingMessage('กำลังบันทึกชุดข้อสอบ...');
+                if (!newExam.id || !newExam.title || newQuestions.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
+                setLoading(true);
                 try {
-                    await window.fb.setDoc(window.fb.doc(window.db, "exams", newExam.id), {
-                        ...newExam,
-                        timeLimit: parseInt(newExam.time) * 60,
-                        questions: newQuestions
-                    });
+                    await window.fb.setDoc(window.fb.doc(window.db, "exams", newExam.id), { ...newExam, timeLimit: newExam.time * 60, questions: newQuestions });
                     alert("สร้างข้อสอบสำเร็จ!");
                     setNewExam({ id: '', title: '', time: 60 }); setNewQuestions([]); setAdminTab('manage_exams'); fetchExams();
-                } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
+                } catch (err) {
+                    alert("บันทึกไม่สำเร็จ: " + err.message);
+                }
                 setLoading(false);
             };
 
-            // --- Student Login ---
             const handleStudentLogin = async (e) => {
-                e.preventDefault(); setLoading(true); setLoadingMessage('กำลังตรวจสอบข้อมูลนักเรียน...'); setError('');
+                e.preventDefault(); setLoading(true); setError('');
                 try {
-                    const docSnap = await window.fb.getDoc(window.fb.doc(window.db, "students", studentIdInput));
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        const sData = { id: docSnap.id, ...data };
+                    const snap = await window.fb.getDoc(window.fb.doc(window.db, "students", studentIdInput));
+                    if (snap.exists()) {
+                        const sData = { id: snap.id, ...snap.data() };
                         const activeId = String(systemConfig.activeExamId).trim();
-                        if (!sData.assignedExams || !sData.assignedExams.includes(activeId)) {
-                            setError(`คุณไม่มีสิทธิ์สอบวิชานี้`); setLoading(false); return;
+                        if (!sData.assignedExams?.includes(activeId)) { setError('ไม่มีสิทธิ์สอบวิชานี้'); }
+                        else {
+                            setStudent(sData);
+                            if (systemConfig.isOpen) { prepareExam(activeId); setStep('instructions'); }
+                            else setStep('waiting_room');
                         }
-                        const cfgRoom = String(systemConfig.activeClassroom || 'All').trim();
-                        if (cfgRoom !== 'All' && cfgRoom !== sData.classroom) {
-                            setError(`เปิดสอบเฉพาะห้อง ${cfgRoom}`); setLoading(false); return;
-                        }
-                        setStudent(sData);
-                        if (systemConfig.isOpen) { prepareExam(activeId); setStep('instructions'); }
-                        else setStep('waiting_room');
                     } else setError('ไม่พบรหัสนักเรียน');
-                } catch (err) { setError('การเชื่อมต่อขัดข้อง'); console.error(err); }
+                } catch (err) {
+                    setError('การเชื่อมต่อขัดข้อง: ' + err.message);
+                }
                 setLoading(false);
             };
 
             const prepareExam = (examId) => {
-                const found = exams.find(e => String(e.id).trim() === String(examId).trim());
+                const found = exams.find(e => String(e.id) === String(examId));
                 if (found) {
-                    let processedExam = JSON.parse(JSON.stringify(found));
-                    processedExam.questions = shuffleArray(processedExam.questions).map(q => {
-                        const optionsWithMeta = q.options.map((opt, index) => ({ text: opt, isCorrect: index === q.correct }));
-                        const shuffled = shuffleArray(optionsWithMeta);
+                    let processed = JSON.parse(JSON.stringify(found));
+                    const hasStructure = processed.questions.some(q => q.sectionTitle || q.passage);
+                    if (!hasStructure) processed.questions = shuffleArray(processed.questions);
+                    processed.questions = processed.questions.map(q => {
+                        const opts = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.correct }));
+                        const shuffled = shuffleArray(opts);
                         return { ...q, options: shuffled.map(o => o.text), correct: shuffled.findIndex(o => o.isCorrect) };
                     });
-                    const effectiveTime = systemConfig.customTimeLimit > 0 ? systemConfig.customTimeLimit : found.timeLimit;
-                    setCurrentExam({ ...processedExam, timeLimit: effectiveTime });
+                    setCurrentExam({ ...processed, timeLimit: systemConfig.customTimeLimit || processed.timeLimit });
                 }
             };
 
             const startExam = () => {
-                if (!systemConfig.isOpen) { alert("ระบบปิดแล้ว"); window.location.reload(); return; }
-                setTimeLeft(currentExam.timeLimit); setStep('exam'); setExamStatus('active'); setCurrentQIdx(0);
-                answersRef.current = {}; setAnswers({}); setWarningCount(0);
-                timerRef.current = setInterval(() => { 
-                    setTimeLeft(p => { if(p <= 1) { submitExam('TimeOut'); return 0; } return p - 1; }); 
-                }, 1000);
+                if (!systemConfig.isOpen) return window.location.reload();
+                setTimeLeft(currentExam.timeLimit); setStep('exam'); setExamStatus('active');
+                timerRef.current = setInterval(() => setTimeLeft(p => { if(p <= 1) submitExam('TimeOut'); return p - 1; }), 1000);
             };
 
             const submitExam = async (reason = 'Normal', isCheat = false) => {
-                if (examStatus === 'submitted' || examStatus === 'cheated') return;
-                clearInterval(timerRef.current);
-                setLoading(true); setLoadingMessage('กำลังบันทึกคำตอบ...'); 
-                let score = 0;
-                const currentAnswers = answersRef.current || {};
-                const currentStatus = isCheat ? 'CHEATED' : (reason === 'TimeOut' ? 'TIMEOUT' : 'COMPLETED');
-                if(currentExam?.questions) { currentExam.questions.forEach(q => { if(currentAnswers[q.id] === q.correct) score++; }); }
-                setScore(score); setExamStatus(isCheat ? 'cheated' : 'submitted');
+                if (examStatus !== 'active') return;
+                clearInterval(timerRef.current); setLoading(true);
+                let sc = 0;
+                currentExam.questions.forEach(q => { if(answersRef.current[q.id] === q.correct) sc++; });
                 try {
                     await window.fb.setDoc(window.fb.doc(window.db, "submissions", `${student.id}_${currentExam.id}`), {
                         studentId: student.id, studentName: `${student.name} ${student.surname}`, examId: currentExam.id,
-                        score: score, totalScore: currentExam.questions.length, status: currentStatus, reason: reason, answers: currentAnswers, submittedAt: new Date().toISOString()
+                        score: sc, totalScore: currentExam.questions.length, status: isCheat ? 'CHEATED':'COMPLETED', reason, answers: answersRef.current, submittedAt: new Date().toISOString()
                     });
-                    alert(`บันทึกสำเร็จ!\nคะแนน: ${score}/${currentExam.questions.length}`);
-                    window.location.reload();
-                } catch(e) { console.error(e); alert("เกิดข้อผิดพลาดในการบันทึก: " + e.message); setLoading(false); }
+                    alert(`บันทึกสำเร็จ! คะแนนของคุณคือ: ${sc}/${currentExam.questions.length}`);
+                } catch (err) {
+                    alert("ส่งข้อมูลไม่สำเร็จ แต่ระบบบันทึกคะแนนในเครื่องไว้แล้ว: " + sc);
+                }
+                window.location.reload();
             };
 
-            // Anti-Cheat
-            useEffect(() => {
-                if (step !== 'exam') return;
-                const handleCheat = () => {
-                    if (examStatus === 'submitted' || examStatus === 'cheated') return;
-                    setWarningCount(prev => {
-                        const newCount = prev + 1;
-                        if (newCount <= 2) { alert(`⚠️ แจ้งเตือน ${newCount}/2: ห้ามสลับหน้าจอ`); return newCount; } 
-                        else { submitExam("สลับหน้าจอเกินกำหนด", true); return newCount; }
+            const handleToggleExam = async (isOpen) => {
+                setLoading(true);
+                const now = new Date();
+                try {
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
+                        isOpen, customTimeLimit: parseInt(adminTimeLimitInput) * 60, activeClassroom: adminClassroomInput,
+                        examOpenedAt: isOpen ? now.toLocaleString('th-TH'):'', examStartMs: isOpen ? now.getTime():0
                     });
-                };
-                const handleVis = () => { if (document.hidden) handleCheat(); };
-                const handleKeyDown = (e) => { if (e.key === 'PrintScreen' || (e.ctrlKey && e.shiftKey && e.key === 'S')) { setIsBlackout(true); setTimeout(() => setIsBlackout(false), 2000); alert("ตรวจพบการพยายามแคปหน้าจอ"); } };
-                document.addEventListener('visibilitychange', handleVis); document.addEventListener('contextmenu', e => e.preventDefault()); document.addEventListener('keydown', handleKeyDown);
-                return () => { document.removeEventListener('visibilitychange', handleVis); document.removeEventListener('contextmenu', e => e.preventDefault()); document.removeEventListener('keydown', handleKeyDown); clearInterval(timerRef.current); };
-            }, [step, examStatus]); 
+                } catch (err) {
+                    alert("Error: " + err.message);
+                }
+                setLoading(false);
+            };
+
+            const handleChangeExamSubject = (examId) => {
+                const found = exams.find(e => String(e.id) === String(examId));
+                if (found) setAdminTimeLimitInput(found.timeLimit / 60);
+                window.fb.updateDoc(window.fb.doc(window.db,"config","system"), {activeExamId: examId});
+            };
+
+            const addQuestionToDraft = () => {
+                if (!qDraft.text || qDraft.options.some(o => !o.trim())) return alert("กรุณากรอกข้อมูลโจทย์และตัวเลือกให้ครบ");
+                setNewQuestions([...newQuestions, { ...qDraft, id: Date.now() + Math.random() }]);
+                setQDraft({ ...qDraft, text: '', options: ['', '', '', ''], correct: 0 });
+            };
 
             const exportToCSV = () => {
                 const filterRoom = adminClassroomInput;
-                const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom) === String(filterRoom));
-                if (filtered.length === 0) { alert("ไม่มีข้อมูล"); return; }
-                const headers = ["ID", "Name", "Surname", "Class", "Score", "Status", "Reason"];
-                const rows = filtered.map(d => [ `'${d.id}`, `"${d.name}"`, `"${d.surname}"`, `"${d.classroom}"`, d.score !== undefined ? d.score : "-", `"${d.status || 'รอสอบ'}"`, `"${d.reason || '-'}"` ]);
+                const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom) === adminClassroomInput);
+                if (filtered.length === 0) { alert("ไม่มีข้อมูลสำหรับการส่งออก"); return; }
+
+                const headers = ["Student ID", "Name", "Surname", "Classroom", "Score", "Status", "Reason"];
+                const rows = filtered.map(d => [
+                    `'${d.id}`, 
+                    `"${d.name || ''}"`,
+                    `"${d.surname || ''}"`,
+                    `"${d.classroom || ''}"`,
+                    d.score !== undefined ? d.score : "-",
+                    `"${d.status || ''}"`,
+                    `"${d.reason || '-'}"`
+                ]);
+
                 const csvContent = "\ufeff" + [headers, ...rows].map(e => e.join(",")).join("\n");
-                const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-                const link = document.createElement("a");
-                link.href = url; link.download = `Exam_Report_${new Date().getTime()}.csv`;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.body.appendChild(document.createElement("a"));
+                link.href = url;
+                link.download = `Exam_Report_${systemConfig.activeExamId || 'export'}_${new Date().getTime()}.csv`;
                 link.click();
+                document.body.removeChild(link);
             };
 
-            const handleAdminLogin = (e) => { e.preventDefault(); if(adminPassword === 'admin1234') { setStep('admin_dashboard'); } else { alert('รหัสผิด'); } };
-            const addQuestionToDraft = () => { if (!qDraft.text || qDraft.options.some(o => !o.trim())) return alert("กรอกข้อมูลให้ครบ"); setNewQuestions([...newQuestions, { ...qDraft }]); setQDraft({ text: '', options: ['', ''], correct: 0, mediaType: 'none', mediaContent: '' }); };
-
-            // Render
             return (
-                <>
+                <div className="min-h-screen selection:bg-blue-100">
                     {loading && <LoadingOverlay message={loadingMessage} />}
                     {isBlackout && <BlackoutOverlay />}
                     {showTemplateModal && <TemplateModal onClose={() => setShowTemplateModal(false)} />}
-                    {editingExam && <EditExamModal exam={editingExam} onClose={()=>setEditingExam(null)} onSave={handleUpdateExam} />}
-                    {step === 'exam' && student && <Watermark text={`${student.id} - ${student.name}`} />}
-                    
+                    {editingExam && <EditExamModal exam={editingExam} onClose={()=>setEditingExam(null)} onSave={async (id, updateData)=>{
+                        setLoading(true);
+                        try {
+                            // Update advanced fields: title, time, and full questions list
+                            await window.fb.updateDoc(window.fb.doc(window.db, "exams", id), { 
+                                title: updateData.title, 
+                                timeLimit: updateData.time * 60,
+                                questions: updateData.questions
+                            });
+                            alert('บันทึกการแก้ไขข้อสอบเรียบร้อยแล้ว');
+                            setEditingExam(null); 
+                            fetchExams();
+                        } catch (err) { 
+                            alert('เกิดข้อผิดพลาด: ' + err.message); 
+                        }
+                        setLoading(false);
+                    }} />}
+                    {viewingExam && <ViewExamModal exam={viewingExam} onClose={()=>setViewingExam(null)} />}
+                    {step === 'exam' && <Watermark text={`${student?.id} - ${student?.name}`} />}
+
+                    {/* Student Login */}
                     {step === 'login' && (
-                        <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                            <div className="glass-card p-10 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
-                                <button onClick={() => setStep('admin_login')} className="absolute top-4 right-4 text-slate-400 p-2 hover:bg-sky-50 rounded-full"><Shield size={20}/></button>
+                        <div className="min-h-screen flex items-center justify-center p-4">
+                            <div className="glass-card p-10 rounded-3xl shadow-2xl w-full max-w-md relative text-center animate-fade-in text-slate-800">
+                                <button onClick={() => setStep('admin_login')} className="absolute top-4 right-4 text-slate-400 p-2 hover:bg-sky-100 rounded-full transition-colors"><Shield size={20}/></button>
                                 <LogoHeader title="เข้าสู่ระบบสอบ" subtitle="Secure Exam System (Firestore)" />
                                 <form onSubmit={handleStudentLogin} className="space-y-5">
-                                    <input type="text" value={studentIdInput} onChange={(e) => setStudentIdInput(e.target.value)} className="w-full px-5 py-3 border rounded-xl text-lg text-center tracking-widest" placeholder="รหัสนักเรียน" required />
-                                    {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-2"><AlertTriangle size={18}/>{error}</div>}
-                                    <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-700 transition">เข้าสู่ระบบ</button>
+                                    <input type="text" value={studentIdInput} onChange={(e) => setStudentIdInput(e.target.value)} className="w-full p-4 border rounded-2xl text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 outline-none" placeholder="รหัสนักเรียน" required />
+                                    {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm animate-shake">{error}</div>}
+                                    <button className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-all text-lg text-center flex justify-center items-center">เข้าสู่ระบบ</button>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {step === 'admin_login' && (
-                        <div className="min-h-screen flex items-center justify-center p-4">
-                            <div className="glass-card p-10 rounded-3xl shadow-2xl w-full max-w-sm">
-                                <LogoHeader title="ผู้ดูแลระบบ" />
-                                <form onSubmit={handleAdminLogin} className="space-y-4">
-                                    <input type="password" value={adminPassword} onChange={e=>setAdminPassword(e.target.value)} className="w-full px-5 py-3 border rounded-xl text-center" placeholder="รหัสผ่าน Admin" autoFocus/>
-                                    <button className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl">Login</button>
-                                </form>
-                                <button onClick={()=>setStep('login')} className="w-full text-sm text-center mt-6 text-slate-500">กลับหน้าหลัก</button>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Admin Dashboard */}
                     {step === 'admin_dashboard' && (
-                        <div className="min-h-screen p-4 md:p-8">
-                            <div className="max-w-6xl mx-auto glass-card rounded-2xl shadow-2xl min-h-[80vh] overflow-hidden">
-                                <div className="bg-white/50 p-6 border-b flex justify-between items-center">
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>setAdminTab('dashboard')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='dashboard'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>Dashboard</button>
-                                        <button onClick={()=>setAdminTab('manage_exams')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='manage_exams'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>จัดการคลังข้อสอบ</button>
-                                        <button onClick={()=>setAdminTab('create_exam')} className={`px-4 py-2 rounded-lg font-bold transition ${adminTab==='create_exam'?'bg-blue-100 text-blue-700':'text-slate-500 hover:bg-slate-50'}`}>สร้างข้อสอบใหม่</button>
+                        <div className="p-4 md:p-8 max-w-6xl mx-auto animate-fade-in text-slate-800">
+                            <div className="glass-card rounded-2xl shadow-2xl min-h-[80vh] flex flex-col overflow-hidden bg-white/60">
+                                <div className="p-4 border-b flex justify-between items-center bg-white/70">
+                                    <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                                        <button onClick={()=>setAdminTab('dashboard')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 ${adminTab==='dashboard'?'bg-white text-blue-600 shadow-sm':'text-slate-500'}`}><RefreshCw size={16}/> Dashboard</button>
+                                        <button onClick={()=>setAdminTab('manage_exams')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 ${adminTab==='manage_exams'?'bg-white text-blue-600 shadow-sm':'text-slate-500'}`}><List size={16}/> คลังข้อสอบ</button>
+                                        <button onClick={()=>setAdminTab('create_exam')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 ${adminTab==='create_exam'?'bg-white text-blue-600 shadow-sm':'text-slate-500'}`}><Plus size={16}/> สร้างข้อสอบ</button>
                                     </div>
-                                    <button onClick={()=>{setStep('login'); setAdminPassword('');}}><LogOut size={20}/></button>
+                                    <button onClick={()=>{setStep('login'); setAdminPassword('');}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><LogOut/></button>
                                 </div>
-                                <div className="p-6">
-                                    {adminTab === 'manage_exams' && (
-                                        <div className="animate-fade-in">
-                                            <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2"><List size={20}/> รายวิชาทั้งหมดในระบบ</h3>
-                                            <div className="grid gap-4">
-                                                {exams.map(ex => (
-                                                    <div key={ex.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-3 mb-1"><span className="bg-slate-100 text-slate-600 font-mono font-bold px-2 py-0.5 rounded text-sm">{ex.id}</span> <span className="font-bold text-lg text-slate-800">{ex.title}</span></div>
-                                                            <div className="text-slate-500 text-sm flex gap-4"><span>เวลา: {ex.timeLimit/60} นาที</span><span>จำนวน: {ex.questions?.length || 0} ข้อ</span></div>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button onClick={()=>setEditingExam(ex)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 flex items-center gap-2"><Edit size={16}/> แก้ไข</button>
-                                                            <button onClick={()=>handleDeleteExam(ex.id)} className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 flex items-center gap-2"><Trash size={16}/> ลบ</button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {exams.length === 0 && <div className="text-center p-8 text-slate-400">ยังไม่มีรายวิชา</div>}
+                                <div className="p-6 overflow-y-auto flex-1">
+                                    {adminTab === 'create_exam' && (
+                                        <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+                                            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                                                <div className="flex items-center gap-3 text-emerald-800"><FileText className="text-emerald-600"/> <div><h4 className="font-bold">นำเข้าจาก Word</h4><p className="text-xs text-emerald-600">อัปโหลดไฟล์ .docx เพื่อความรวดเร็ว</p></div></div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={()=>setShowTemplateModal(true)} className="text-sm text-emerald-700 underline flex items-center gap-1 hover:text-emerald-900"><HelpCircle size={14}/> ตัวอย่าง</button>
+                                                    <label className="bg-emerald-600 text-white px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"><Upload size={16}/> เลือกไฟล์ <input type="file" accept=".docx" onChange={handleFileSelect} className="hidden" /></label>
+                                                </div>
                                             </div>
+                                            <div className="bg-white p-6 rounded-2xl border space-y-4 shadow-sm">
+                                                <h3 className="font-bold border-b pb-2 text-slate-500 text-sm uppercase tracking-wider">1. ข้อมูลพื้นฐาน</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <input type="text" placeholder="รหัสวิชา (เช่น CHN101)" value={newExam.id} onChange={e=>setNewExam({...newExam, id: e.target.value})} className="p-3 border rounded-xl focus:ring-2 focus:ring-blue-100 outline-none font-bold" />
+                                                    <input type="text" placeholder="ชื่อวิชา" value={newExam.title} onChange={e=>setNewExam({...newExam, title: e.target.value})} className="p-3 border rounded-xl focus:ring-2 focus:ring-blue-100 outline-none font-bold" />
+                                                    <input type="number" placeholder="เวลา (นาที)" value={newExam.time} onChange={e=>setNewExam({...newExam, time: parseInt(e.target.value)||0})} className="p-3 border rounded-xl focus:ring-2 focus:ring-blue-100 outline-none font-bold" />
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-2xl border space-y-6 shadow-sm">
+                                                <h3 className="font-bold border-b pb-2 text-slate-500 text-sm uppercase tracking-wider">2. เพิ่มเนื้อหา/โจทย์รายข้อ</h3>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <input type="text" placeholder="หัวข้อตอน (Section Title) - ถ้าต้องการระบุ" value={qDraft.sectionTitle} onChange={e=>setQDraft({...qDraft, sectionTitle: e.target.value})} className="p-3 border rounded-xl bg-blue-50/50 border-blue-100 outline-none focus:ring-2 focus:ring-blue-200" />
+                                                    <textarea rows="3" placeholder="บทความประกอบโจทย์ (Passage) - พิมพ์เนื้อหาบทความที่นี่" value={qDraft.passage} onChange={e=>setQDraft({...qDraft, passage: e.target.value})} className="p-3 border rounded-xl bg-amber-50/30 border-amber-100 outline-none focus:ring-2 focus:ring-amber-200" />
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="text-xs font-bold text-slate-500">ตำแหน่งบทความ:</label>
+                                                        <select value={qDraft.passagePosition} onChange={e=>setQDraft({...qDraft, passagePosition: e.target.value})} className="p-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100">
+                                                            <option value="top">บทความอยู่ด้านบนคำถาม</option>
+                                                            <option value="bottom">บทความอยู่ด้านล่างคำถาม</option>
+                                                        </select>
+                                                    </div>
+                                                    <input type="text" placeholder="พิมพ์โจทย์คำถาม..." value={qDraft.text} onChange={e=>setQDraft({...qDraft, text: e.target.value})} className="p-4 border rounded-xl font-black border-slate-300 outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">ตัวเลือกคำตอบ (Options)</p>
+                                                    {qDraft.options.map((opt, i) => (
+                                                        <div key={i} className="flex gap-2 items-center text-slate-800">
+                                                            <input type="radio" name="draft-correct" checked={qDraft.correct === i} onChange={()=>setQDraft({...qDraft, correct: i})} className="w-5 h-5 accent-green-600 cursor-pointer" />
+                                                            <input type="text" value={opt} onChange={e=>{const n=[...qDraft.options];n[i]=e.target.value;setQDraft({...qDraft, options:n})}} className="flex-1 p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none" placeholder={`ระบุตัวเลือกที่ ${i+1}`} />
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={()=>setQDraft(p=>({...p, options:[...p.options,'']}))} className="text-sm text-blue-600 font-bold flex items-center gap-1 hover:text-blue-800 transition-colors"><Plus size={14}/> เพิ่มตัวเลือก</button>
+                                                </div>
+                                                <button onClick={addQuestionToDraft} className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black flex justify-center gap-2 hover:bg-blue-700 transition-all shadow-md active:scale-95 text-lg"><Plus size={18}/> เพิ่มข้อสอบเข้าสู่รายการชั่วคราว ({newQuestions.length})</button>
+                                            </div>
+                                            {newQuestions.length > 0 && (
+                                                <div className="animate-fade-in bg-slate-800 text-white p-6 rounded-3xl space-y-4 shadow-xl text-center">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="font-bold text-lg">รายการข้อสอบที่พร้อมบันทึก ({newQuestions.length} ข้อ)</h4>
+                                                        <button onClick={()=>setNewQuestions([])} className="text-red-300 text-sm font-bold hover:text-red-200">ล้างทั้งหมด</button>
+                                                    </div>
+                                                    <div className="max-h-64 overflow-y-auto pr-2 space-y-2 text-left">
+                                                        {newQuestions.map((q, idx) => (
+                                                            <div key={idx} className="bg-slate-700/50 p-3 rounded-xl flex justify-between items-center border border-slate-600/50">
+                                                                <span className="truncate flex-1 pr-4 text-sm font-medium">{idx+1}. {q.text}</span>
+                                                                <button onClick={()=>{const n=[...newQuestions]; n.splice(idx,1); setNewQuestions(n);}} className="text-slate-400 hover:text-red-400"><Trash size={16}/></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <button onClick={handleCreateExamSubmit} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black text-xl shadow-xl hover:bg-green-600 transition-all active:scale-95">บันทึกชุดข้อสอบลงฐานข้อมูล</button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
-                                    {adminTab === 'create_exam' && (
-                                        <div className="space-y-6 animate-fade-in">
-                                            <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100 flex items-center justify-between">
-                                                <div className="flex items-center gap-3"><FileText size={24} className="text-emerald-600"/><div><h3 className="font-bold text-emerald-900">นำเข้าจาก Word</h3><p className="text-sm text-emerald-700">อัปโหลด .docx</p></div></div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => setShowTemplateModal(true)} className="text-sm text-emerald-700 underline flex items-center gap-1"><HelpCircle size={16}/> ตัวอย่าง</button>
-                                                    <label className="bg-emerald-600 text-white px-4 py-2 rounded-lg cursor-pointer flex gap-2"><Upload size={18}/> เลือกไฟล์ <input type="file" ref={fileInputRef} accept=".docx" onChange={handleFileSelect} className="hidden" /></label>
-                                                </div>
-                                            </div>
-                                            <div className="bg-sky-50 p-6 rounded-xl border border-sky-100 grid grid-cols-3 gap-4">
-                                                <input type="text" placeholder="รหัสวิชา (ID)" value={newExam.id} onChange={e=>setNewExam({...newExam, id: e.target.value})} className="p-3 border rounded-lg" />
-                                                <input type="text" placeholder="ชื่อวิชา" value={newExam.title} onChange={e=>setNewExam({...newExam, title: e.target.value})} className="p-3 border rounded-lg" />
-                                                <input type="number" placeholder="เวลา (นาที)" value={newExam.time} onChange={e=>setNewExam({...newExam, time: e.target.value})} className="p-3 border rounded-lg" />
-                                            </div>
-                                            <div className="bg-white p-6 rounded-xl border">
-                                                <h3 className="font-bold mb-4">เพิ่มข้อสอบ ({newQuestions.length + 1})</h3>
-                                                <input type="text" placeholder="คำถาม..." value={qDraft.text} onChange={e=>setQDraft({...qDraft, text: e.target.value})} className="w-full p-3 border rounded-lg mb-4" />
-                                                {qDraft.options.map((opt, i) => (
-                                                    <div key={i} className="flex gap-2 mb-2"><input type="radio" checked={qDraft.correct === i} onChange={()=>setQDraft({...qDraft, correct: i})} /><input type="text" value={opt} onChange={e=>{const n=[...qDraft.options];n[i]=e.target.value;setQDraft({...qDraft, options:n})}} className="flex-1 p-2 border rounded" placeholder={`ตัวเลือก ${i+1}`}/></div>
+                                    {adminTab === 'manage_exams' && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <h3 className="font-bold text-lg border-b pb-2 flex items-center gap-2 text-slate-700 uppercase tracking-widest"><List size={20} className="text-blue-600"/> จัดการรายวิชา</h3>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {exams.map(ex => (
+                                                    <div key={ex.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition-shadow">
+                                                        <div className="flex-1">
+                                                            <h4 className="font-black text-xl text-slate-800">{ex.title}</h4>
+                                                            <div className="flex gap-4 text-xs text-slate-500 font-bold mt-2">
+                                                                <span className="bg-slate-100 px-2.5 py-1 rounded-lg uppercase tracking-wider text-[10px]">{ex.id}</span>
+                                                                <span className="flex items-center gap-1"><FileText size={12}/> {ex.questions?.length || 0} ข้อ</span>
+                                                                <span className="flex items-center gap-1"><Clock size={12}/> {ex.timeLimit/60} นาที</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2 shrink-0">
+                                                            <button onClick={()=>setViewingExam(ex)} className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors" title="ดูรายละเอียด"><Eye size={20}/></button>
+                                                            <button onClick={()=>setEditingExam(ex)} className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors" title="แก้ไขข้อสอบแบบละเอียด"><Edit size={20}/></button>
+                                                            <button onClick={async ()=>{if(confirm(`ยืนยันลบวิชา ${ex.title}? ข้อมูลข้อสอบทั้งหมดจะหายไป`)) { setLoading(true); try { await window.fb.deleteDoc(window.fb.doc(window.db,"exams",ex.id)); fetchExams(); } catch(e){ alert(e.message); } setLoading(false); }}} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors" title="ลบวิชา"><Trash size={20}/></button>
+                                                        </div>
+                                                    </div>
                                                 ))}
-                                                <button onClick={()=>setQDraft(p=>({...p, options:[...p.options,'']}))} className="text-sm text-blue-600">+ เพิ่มตัวเลือก</button>
-                                                <div className="mt-4"><button onClick={addQuestionToDraft} className="bg-blue-600 text-white px-6 py-2 rounded-lg">เพิ่มข้อสอบ</button></div>
+                                                {exams.length === 0 && <div className="text-center py-20 text-slate-400 italic">ยังไม่มีรายวิชาในระบบ เริ่มต้นสร้างข้อสอบได้ที่แท็บ "สร้างข้อสอบ"</div>}
                                             </div>
-                                            <div className="pt-6 border-t"><button onClick={handleCreateExamSubmit} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">บันทึกชุดข้อสอบ</button></div>
                                         </div>
                                     )}
 
                                     {adminTab === 'dashboard' && (
-                                        <div className="animate-fade-in">
-                                            <div className="bg-slate-50 p-6 rounded-xl mb-6 grid grid-cols-4 gap-4 items-end">
-                                                <div><label className="text-xs font-bold block mb-2">วิชา</label><select value={systemConfig.activeExamId} onChange={(e)=>handleChangeExamSubject(e.target.value)} className="w-full p-3 border rounded-xl">{exams.map(e=><option key={e.id} value={e.id}>{e.id} {e.title}</option>)}</select></div>
-                                                <div><label className="text-xs font-bold block mb-2">ห้อง</label><input type="text" value={adminClassroomInput} onChange={e=>setAdminClassroomInput(e.target.value)} className="w-full p-3 border rounded-xl"/></div>
-                                                <div><label className="text-xs font-bold block mb-2">เวลา (นาที)</label><input type="number" value={adminTimeLimitInput} onChange={e=>setAdminTimeLimitInput(e.target.value)} className="w-full p-3 border rounded-xl"/></div>
-                                                <div className="flex gap-2">
-                                                    {systemConfig.isOpen ? 
-                                                        <button onClick={handleUpdateLiveConfig} className="flex-1 p-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 text-sm">อัปเดต</button> : null
-                                                    }
-                                                    <button onClick={()=>handleToggleExam(!systemConfig.isOpen)} className={`flex-1 p-3 rounded-xl font-bold text-white ${systemConfig.isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>{systemConfig.isOpen ? 'ปิดสอบ' : 'เปิดสอบ'}</button>
+                                        <div className="space-y-6 animate-fade-in text-slate-800">
+                                            <div className="bg-slate-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-inner border border-slate-200/50">
+                                                <div className="col-span-1 md:col-span-1">
+                                                    <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-widest">วิชาที่กำลังเปิดสอบ</label>
+                                                    <select value={systemConfig.activeExamId} onChange={e=>handleChangeExamSubject(e.target.value)} className="w-full p-2.5 border rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-100 text-sm font-bold">
+                                                        {exams.map(e=><option key={e.id} value={e.id}>{e.id} | {e.title}</option>)}
+                                                    </select>
                                                 </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-widest">จำกัดห้องเรียน (ระบุ)</label>
+                                                    <input type="text" value={adminClassroomInput} onChange={e=>setAdminClassroomInput(e.target.value)} className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100 text-sm" placeholder="เช่น 601" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-widest">เวลา (นาที)</label>
+                                                    <input type="number" value={adminTimeLimitInput} onChange={e=>setAdminTimeLimitInput(e.target.value)} className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100 text-sm" />
+                                                </div>
+                                                <button onClick={()=>handleToggleExam(!systemConfig.isOpen)} className={`py-3 px-4 rounded-xl font-black text-white shadow-lg transition-all active:scale-95 ${systemConfig.isOpen?'bg-red-500 hover:bg-red-600':'bg-green-600 hover:bg-green-700'}`}>
+                                                    {systemConfig.isOpen ? 'ปิด':'เปิด'}ระบบสอบอัตโนมัติ
+                                                </button>
                                             </div>
-                                            <div className="flex justify-between mb-4"><h3 className="font-bold">รายชื่อนักเรียน</h3><button onClick={exportToCSV} className="text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 flex gap-2"><Download size={16}/> Export CSV</button></div>
-                                            <div className="grid grid-cols-4 gap-4">
-                                                {dashboardData.filter(d => adminClassroomInput === 'All' || d.classroom === adminClassroomInput).map((d, i) => (
-                                                    <div key={i} className={`p-4 rounded-xl border ${d.status==='COMPLETED'?'bg-green-50 border-green-200':d.status==='IN_PROGRESS'?'bg-blue-50 border-blue-200':'bg-white'}`}>
-                                                        <div className="flex justify-between"><span className="font-bold">{d.id}</span><span className="text-xs">{d.status}</span></div>
-                                                        <div className="truncate">{d.name}</div>
-                                                        <div className="text-right font-bold text-xl">{d.score !== undefined ? d.score : '-'}</div>
+                                            
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-black text-slate-700 flex items-center gap-2 uppercase tracking-tighter"><RefreshCw size={18} className="text-blue-500 animate-spin-slow"/> Real-time Students Status</h4>
+                                                <button onClick={exportToCSV} className="text-xs bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl border border-emerald-200 hover:bg-emerald-200 transition-colors font-black flex items-center gap-1 uppercase tracking-tighter"><Download size={14}/> Export .CSV</button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                                {dashboardData.filter(d=>adminClassroomInput==='All'||String(d.classroom)===adminClassroomInput).map((d, i)=>(
+                                                    <div key={i} className={`bg-white p-4 rounded-2xl border flex flex-col justify-between shadow-sm transition-all ${d.status==='COMPLETED'?'ring-2 ring-emerald-400/30 border-emerald-100':d.status==='IN_PROGRESS'?'ring-2 ring-blue-400/30 border-blue-100 animate-pulse':'border-slate-100 opacity-60'}`}>
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="font-bold text-[10px] text-slate-500 tracking-tighter uppercase">{d.id}</span>
+                                                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${d.status==='COMPLETED'?'bg-emerald-100 text-emerald-700':d.status==='IN_PROGRESS'?'bg-blue-100 text-blue-700':'bg-slate-100 text-slate-400'}`}>{d.status}</span>
+                                                        </div>
+                                                        <div className="text-xs font-black text-slate-700 truncate py-3 border-b border-slate-50 mb-3">{d.name} {d.surname}</div>
+                                                        <div className="flex justify-between items-end">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[9px] text-slate-300 font-bold uppercase leading-tight">Score</span>
+                                                                <span className="text-3xl font-black text-slate-800 leading-none">{d.score ?? '-'}</span>
+                                                            </div>
+                                                            <span className="text-[9px] font-black text-slate-300">/ {systemConfig.activeExamId}</span>
+                                                        </div>
                                                     </div>
                                                 ))}
+                                                {dashboardData.length === 0 && <div className="col-span-full text-center py-10 text-slate-400 italic">ไม่พบข้อมูลนักเรียนในขณะนี้</div>}
                                             </div>
                                         </div>
                                     )}
@@ -627,60 +748,108 @@
                         </div>
                     )}
 
+                    {/* Admin Login */}
+                    {step === 'admin_login' && (
+                        <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in text-slate-800">
+                            <div className="glass-card p-10 rounded-3xl w-full max-w-sm text-center shadow-2xl">
+                                <LogoHeader title="ระบบจัดการหลังบ้าน" />
+                                <form onSubmit={e=>{e.preventDefault(); if(adminPassword==='admin1234') setStep('admin_dashboard'); else alert('รหัสผ่านไม่ถูกต้อง');}} className="space-y-4">
+                                    <input type="password" value={adminPassword} onChange={e=>setAdminPassword(e.target.value)} className="w-full p-4 border rounded-2xl text-center outline-none focus:ring-2 focus:ring-slate-800 text-lg" placeholder="รหัสผ่าน Admin" autoFocus/>
+                                    <button className="w-full bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-slate-900 transition-all text-lg">ยืนยันตัวตน</button>
+                                </form>
+                                <button onClick={()=>setStep('login')} className="mt-6 text-sm text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest font-bold">กลับหน้าแรก</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Waiting Room */}
                     {step === 'waiting_room' && (
-                        <div className="min-h-screen flex items-center justify-center p-4">
-                            <div className="glass-card p-10 rounded-2xl w-full max-w-md text-center">
-                                <h2 className="text-2xl font-bold mb-4">ห้องพักรอสอบ</h2>
-                                <div className="text-6xl mb-6 animate-bounce">⏳</div>
-                                <p className="text-slate-500">วิชา: <span className="font-bold text-slate-800">{currentExam?.title || 'รอครูเปิดระบบ...'}</span></p>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 'instructions' && (
-                        <div className="min-h-screen flex items-center justify-center p-4">
-                            <div className="glass-card p-8 rounded-3xl w-full max-w-lg">
-                                <h2 className="text-2xl font-bold mb-6 border-b pb-4">กฎระเบียบ</h2>
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex gap-4 items-center"><XCircle className="text-red-500"/> ห้ามสลับหน้าจอ</div>
-                                    <div className="flex gap-4 items-center"><AlertTriangle className="text-orange-500"/> ห้ามแคปภาพ</div>
-                                    <div className="flex gap-4 items-center"><Clock className="text-blue-500"/> เวลา: {currentExam?.timeLimit / 60} นาที</div>
+                        <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in text-slate-800 text-center">
+                            <div className="glass-card p-12 rounded-[3rem] w-full max-w-md shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-2 bg-blue-100 overflow-hidden"><div className="h-full bg-blue-600 animate-[pulse_2s_infinite]"></div></div>
+                                <h2 className="text-3xl font-black mb-8 text-slate-800 uppercase tracking-tighter">Waiting Room</h2>
+                                <div className="relative inline-block mb-10">
+                                    <div className="w-20 h-20 border-[6px] border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center text-2xl">⏳</div>
                                 </div>
-                                <button onClick={startExam} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-lg">เริ่มทำข้อสอบ</button>
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">Next Exam</p>
+                                <p className="font-black text-blue-600 text-2xl bg-blue-50 py-4 px-6 rounded-2xl inline-block border border-blue-100">{currentExam?.title || 'รอครูแจ้งวิชา...'}</p>
+                                <p className="mt-10 text-sm text-slate-500 italic leading-relaxed">กรุณาอย่าออกจากหน้านี้ ระบบจะพาคุณเข้าห้องสอบโดยอัตโนมัติ</p>
                             </div>
                         </div>
                     )}
 
-                    {step === 'exam' && currentExam && (
-                        <div className="min-h-screen bg-slate-50 pb-24">
-                            <div className="sticky top-0 bg-white/90 backdrop-blur border-b z-20 px-4 py-3 flex justify-between items-center shadow-sm">
-                                <div><h1 className="font-bold truncate">{currentExam.title}</h1><p className="text-xs">{student.name}</p></div>
-                                <div className="bg-slate-100 px-3 py-1 rounded-lg font-mono font-bold text-blue-600">{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>
+                    {/* Instructions */}
+                    {step === 'instructions' && (
+                        <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in text-slate-800 text-center sm:text-left">
+                            <div className="glass-card p-10 rounded-[3rem] w-full max-w-lg shadow-2xl border-white border-2">
+                                <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
+                                    <div className="p-4 bg-blue-600 text-white rounded-3xl shadow-lg"><Lock size={32}/></div>
+                                    <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Regulations</h2>
+                                </div>
+                                <div className="space-y-4 mb-10 text-slate-700 text-sm sm:text-base">
+                                    <div className="flex gap-4 items-center p-5 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-bold"><XCircle className="shrink-0"/> ห้ามสลับหน้าต่างหรือแท็บโดยเด็ดขาด (ระบบจะส่งกระดาษคำตอบทันที)</div>
+                                    <div className="flex gap-4 items-center p-5 bg-orange-50 text-orange-700 rounded-2xl border border-orange-100 font-bold"><AlertTriangle className="shrink-0"/> ตรวจพบการบันทึกภาพหน้าจอ จะถือว่าทุจริต</div>
+                                    <div className="flex gap-4 items-center p-5 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 font-bold"><Clock className="shrink-0"/> เวลาสอบ: {currentExam?.timeLimit/60} นาที</div>
+                                </div>
+                                <button onClick={startExam} className="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-slate-900 transition-all active:scale-95 uppercase tracking-wider">Start Exam</button>
                             </div>
-                            <div className="max-w-4xl mx-auto p-4 md:p-8">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border mb-6">
-                                    <h3 className="text-xl font-bold mb-6">{currentExam.questions[currentQIdx].text}</h3>
-                                    <div className="space-y-3">
+                        </div>
+                    )}
+
+                    {/* Exam Execution */}
+                    {step === 'exam' && currentExam && (
+                        <div className="min-h-screen bg-slate-100 pb-32 animate-fade-in text-slate-800">
+                            <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b z-20 px-6 py-4 flex justify-between items-center shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 hidden sm:block" />
+                                    <div className="font-black text-slate-800 truncate text-lg pr-4">{currentExam.title}</div>
+                                </div>
+                                <div className={`px-5 py-2.5 rounded-xl font-mono font-black text-xl border-2 transition-colors ${timeLeft < 300 ? 'bg-red-50 border-red-500 text-red-600 animate-pulse':'bg-slate-800 border-slate-800 text-white'}`}>
+                                    {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
+                                </div>
+                            </div>
+                            <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-6">
+                                {currentExam.questions[currentQIdx].sectionTitle && (
+                                    <div className="bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg flex items-center gap-3 animate-fade-in">
+                                        <Layout size={24}/> <span className="text-xl uppercase tracking-wide">{currentExam.questions[currentQIdx].sectionTitle}</span>
+                                    </div>
+                                )}
+                                <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl relative overflow-hidden border border-white">
+                                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] text-9xl font-black select-none pointer-events-none">{currentQIdx + 1}</div>
+                                    
+                                    {currentExam.questions[currentQIdx].passage && currentExam.questions[currentQIdx].passagePosition !== 'bottom' && (
+                                        <div className="bg-amber-50 border-l-8 border-amber-400 p-6 mb-8 rounded-r-3xl text-slate-700 italic whitespace-pre-wrap leading-relaxed shadow-inner"><BookOpen size={20} className="inline mr-3 text-amber-600 mb-1"/>{currentExam.questions[currentQIdx].passage}</div>
+                                    )}
+                                    
+                                    <h3 className="text-2xl font-black text-slate-800 mb-10 leading-snug">{currentQIdx+1}. {currentExam.questions[currentQIdx].text}</h3>
+                                    
+                                    {currentExam.questions[currentQIdx].passage && currentExam.questions[currentQIdx].passagePosition === 'bottom' && (
+                                        <div className="bg-amber-50 border-l-8 border-amber-400 p-6 mb-10 rounded-r-3xl text-slate-700 italic whitespace-pre-wrap leading-relaxed shadow-inner"><BookOpen size={20} className="inline mr-3 text-amber-600 mb-1"/>{currentExam.questions[currentQIdx].passage}</div>
+                                    )}
+
+                                    <div className="grid gap-4">
                                         {currentExam.questions[currentQIdx].options.map((opt, i) => (
-                                            <label key={i} className={`flex items-center p-4 border rounded-xl cursor-pointer transition ${answers[currentExam.questions[currentQIdx].id]===i?'bg-blue-50 border-blue-500 ring-1 ring-blue-500':''}`}>
-                                                <input type="radio" className="hidden" checked={answers[currentExam.questions[currentQIdx].id]===i} onChange={()=>{setAnswers({...answers,[currentExam.questions[currentQIdx].id]:i}); answersRef.current = {...answers,[currentExam.questions[currentQIdx].id]:i};}} />
-                                                <div className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${answers[currentExam.questions[currentQIdx].id]===i?'border-blue-500 bg-blue-500':''}`}>{answers[currentExam.questions[currentQIdx].id]===i&&<div className="w-2 h-2 bg-white rounded-full"/>}</div>
-                                                <span>{opt}</span>
+                                            <label key={i} className={`flex items-center p-6 border-2 rounded-2xl cursor-pointer transition-all active:scale-[0.99] ${answers[currentExam.questions[currentQIdx].id]===i ? 'bg-blue-600 border-blue-600 text-white shadow-xl ring-4 ring-blue-100':'bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-blue-100'}`}>
+                                                <input type="radio" className="hidden" checked={answers[currentExam.questions[currentQIdx].id]===i} onChange={()=>{setAnswers({...answers,[currentExam.questions[currentQIdx].id]:i}); answersRef.current={...answers,[currentExam.questions[currentQIdx].id]:i};}} />
+                                                <div className={`w-10 h-10 rounded-xl border-2 mr-5 flex items-center justify-center font-black text-lg transition-colors ${answers[currentExam.questions[currentQIdx].id]===i?'bg-white text-blue-600 border-white':'bg-white text-slate-300 border-slate-200'}`}>{String.fromCharCode(3601 + i)}</div>
+                                                <span className="text-xl font-bold leading-tight">{opt}</span>
                                             </label>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex justify-between">
-                                    <button onClick={()=>setCurrentQIdx(p=>Math.max(0,p-1))} disabled={currentQIdx===0} className="px-6 py-3 border rounded-xl disabled:opacity-50">ก่อนหน้า</button>
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-4 text-center">
+                                    <button onClick={()=>setCurrentQIdx(p=>Math.max(0,p-1))} disabled={currentQIdx===0} className="w-full sm:w-auto px-8 py-4 bg-white text-slate-600 border-2 rounded-2xl font-black disabled:opacity-30 hover:bg-slate-50 shadow-sm transition-all uppercase">Back</button>
+                                    <div className="text-slate-400 font-black text-xs sm:text-sm uppercase tracking-tighter order-last sm:order-none">Question {currentQIdx + 1} of {currentExam.questions.length}</div>
                                     {currentQIdx < currentExam.questions.length - 1 ? 
-                                        <button onClick={()=>setCurrentQIdx(p=>p+1)} className="px-8 py-3 bg-blue-600 text-white rounded-xl">ถัดไป</button> : 
-                                        <button onClick={()=>submitExam('User Submitted')} className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold">ส่งคำตอบ</button>
+                                        <button onClick={()=>setCurrentQIdx(p=>p+1)} className="w-full sm:w-auto px-10 py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg hover:bg-slate-900 transition-all active:scale-95 uppercase">Next</button> : 
+                                        <button onClick={()=>{ if(confirm("ยืนยันการส่งคำตอบ?")) submitExam('User Submitted'); }} className="w-full sm:w-auto px-12 py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl hover:bg-green-700 transition-all active:scale-95 uppercase">Submit</button>
                                     }
                                 </div>
                             </div>
                         </div>
                     )}
-                </>
+                </div>
             );
         };
 
