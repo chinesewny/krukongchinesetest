@@ -562,7 +562,55 @@ d. option d
                 const answeredCount = currentExamSet.questions.filter(q => answers[q.id] !== undefined).length;
                 return Math.round((answeredCount / currentExamSet.questions.length) * 100);
             }, [answers, currentExamSet]);
-
+            // --- Database Methods ---
+            const fetchAllData = async () => {
+                setLoading(true);
+                try {
+                    // Fetch subjects
+                    const subjectsSnap = await window.fb.getDocs(window.fb.collection(window.db, "subjects"));
+                    const subjectsData = subjectsSnap.docs.map(d => ({ 
+                        id: d.id, 
+                        ...d.data() 
+                    }));
+                    console.log('Subjects loaded:', subjectsData);
+                    setSubjects(subjectsData);
+                    
+                    // Fetch all exam sets
+                    const examSetsData = {};
+                    for (const subject of subjectsData) {
+                        const setsSnap = await window.fb.getDocs(
+                            window.fb.collection(window.db, "subjects", subject.id, "examSets")
+                        );
+                        examSetsData[subject.id] = setsSnap.docs.map(d => ({ 
+                            setId: parseInt(d.id), 
+                            ...d.data() 
+                        })).sort((a, b) => a.setId - b.setId);
+                        
+                        console.log(`Exam sets for ${subject.id}:`, examSetsData[subject.id]);
+                    }
+                    setExamSets(examSetsData);
+                    
+                    // ตรวจสอบว่า activeSubjectId ยังมีอยู่ใน subjects หรือไม่
+                    if (systemConfig.activeSubjectId) {
+                        const subjectExists = subjectsData.some(s => s.id === systemConfig.activeSubjectId);
+                        if (!subjectExists) {
+                            // ถ้าไม่มีให้รีเซ็ตค่า
+                            await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
+                                activeSubjectId: '',
+                                activeExamSetId: 1
+                            });
+                        }
+                    }
+                    
+                    setLoading(false);
+                    return { subjects: subjectsData, examSets: examSetsData };
+                } catch (err) { 
+                    console.error('Error fetching data:', err);
+                    setLoading(false);
+                    showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, 'error');
+                    return { subjects: [], examSets: {} };
+                }
+            };
             // --- Database Methods ---
             
             const exportToCSV = useCallback(() => {
