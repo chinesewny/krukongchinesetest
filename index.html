@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสอบออนไลน์ (Chinese Test)</title>
+    <title>ระบบสอบออนไลน์ (Secure Exam) - Admin Console</title>
     <link rel="icon" href="https://img2.pic.in.th/pic/Logoc404dc85753b800c.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -64,7 +64,7 @@
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
         const LOGO_URL = "https://img2.pic.in.th/pic/Logoc404dc85753b800c.png";
 
-        // --- 1. Global Utilities ---
+                // --- 1. Global Utilities ---
         const shuffleArray = (array) => {
             if (!array || !Array.isArray(array)) return [];
             const newArray = [...array];
@@ -73,6 +73,68 @@
                 [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
             }
             return newArray;
+        };
+
+        // เพิ่มฟังก์ชันสำหรับจัดรูปแบบข้อความที่นำเข้า
+        const formatImportedQuestions = (questions) => {
+    return questions.map(q => {
+        // ลบช่องว่างส่วนเกิน
+        const formatted = {
+            ...q,
+            text: q.text.replace(/\s+/g, ' ').trim(),
+            options: q.options.map(opt => opt.replace(/\s+/g, ' ').trim()),
+            passage: q.passage ? q.passage.replace(/\s+/g, ' ').trim() : ''
+        };
+        
+        // เรียงตัวเลือกใหม่ให้สวยงาม (ให้มีครบ 4 ตัวเลือก)
+        const validOptions = formatted.options.filter(opt => opt !== '');
+        while (validOptions.length < 4) {
+            validOptions.push('');
+        }
+        formatted.options = validOptions;
+        
+        return formatted;
+    });
+};
+        // เพิ่มฟังก์ชันแสดงตัวอย่างรูปแบบไฟล์
+        const showFileFormatExample = () => {
+            const example = `ตัวอย่างรูปแบบไฟล์ที่รองรับ:
+
+รูปแบบที่ 1: ตัวเลือกภาษาไทย (ก-ง)
+1. ข้อสอบข้อที่ 1
+ก. ตัวเลือกที่ 1
+ข. ตัวเลือกที่ 2
+ค. ตัวเลือกที่ 3
+ง. ตัวเลือกที่ 4
+
+รูปแบบที่ 2: ตัวเลือกภาษาอังกฤษ (a-d)
+2. Question 2
+a. option a
+b. option b
+c. option c
+d. option d
+
+รูปแบบที่ 3: ตัวเลือกตัวเลข (1-4)
+3. คำถามข้อที่ 3
+1. ตัวเลือก 1
+2. ตัวเลือก 2
+3. ตัวเลือก 3
+4. ตัวเลือก 4
+
+รูปแบบที่ 4: มีบทอ่าน
+บทอ่านสำหรับข้อสอบ...
+4. คำถามข้อที่ 4
+ก. ตัวเลือก 1
+ข. ตัวเลือก 2
+ค. ตัวเลือก 3
+ง. ตัวเลือก 4
+
+หมายเหตุ: 
+- แต่ละข้อต้องขึ้นต้นด้วยตัวเลขและจุด (1. 2. 3.)
+- ตัวเลือกต้องขึ้นต้นด้วย ก. ข. ค. ง. หรือ a. b. c. d. หรือ 1. 2. 3. 4.
+- บทอ่านจะอยู่ก่อนคำถาม`;
+            
+            alert(example);
         };
 
         const activeIdMatch = (id) => String(id || '').trim();
@@ -105,6 +167,7 @@
         const ChevronDown = (props) => <Icon {...props} path={<><polyline points="6 9 12 15 18 9"/></>} />;
         const Send = (props) => <Icon {...props} path={<><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></>} />;
         const CheckCircle = (props) => <Icon {...props} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
+        const Copy = (props) => <Icon {...props} path={<><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>} />;
 
         // --- 3. UI Components ---
         const LogoHeader = ({ title, subtitle, className = "" }) => (
@@ -176,7 +239,7 @@
         };
 
         // --- 4. Modals ---
-        const ViewExamModal = ({ exam, onClose }) => {
+        const ViewExamModal = ({ exam, examSet, onClose }) => {
             if (!exam) return null;
             return (
                 <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
@@ -184,7 +247,10 @@
                         <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
                             <div>
                                 <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={24} className="text-blue-600"/> ตรวจสอบข้อสอบ</h3>
-                                <p className="text-sm text-slate-500 mt-1">{exam.id} - {exam.title}</p>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    {exam.id} - {exam.title} 
+                                    {examSet && <span className="ml-2 text-blue-600">(ชุดที่ {examSet.setId})</span>}
+                                </p>
                             </div>
                             <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors"><XCircle size={24}/></button>
                         </div>
@@ -221,8 +287,12 @@
             );
         };
 
-        const EditExamModal = ({ exam, onClose, onSave }) => {
-            const [data, setData] = useState({ title: exam.title, time: exam.timeLimit / 60 });
+        const EditExamModal = ({ exam, examSet, onClose, onSave }) => {
+            const [data, setData] = useState({ 
+                title: exam.title, 
+                time: exam.timeLimit / 60,
+                setId: examSet?.setId || 1
+            });
             const [questions, setQuestions] = useState(exam.questions || []);
 
             const handleUpdateQuestion = (idx, field, value) => {
@@ -264,13 +334,15 @@
                         <div className="p-6 border-b flex justify-between items-center bg-slate-50">
                             <div>
                                 <h3 className="text-2xl font-black flex items-center gap-2 uppercase tracking-tighter"><Edit size={24} className="text-blue-600"/> แก้ไขข้อสอบ</h3>
-                                <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">รหัสวิชา: {exam.id}</p>
+                                <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">
+                                    รหัสวิชา: {exam.id} | ชุดที่ {data.setId}
+                                </p>
                             </div>
                             <button onClick={onClose} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-colors"><XCircle size={32}/></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                            <section className="bg-slate-100 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                            <section className="bg-slate-100 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-2">
                                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">ชื่อวิชา</label>
                                     <input type="text" value={data.title} onChange={e=>setData({...data, title: e.target.value})} className="w-full p-4 border rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" />
                                 </div>
@@ -328,7 +400,7 @@
                         </div>
                         <div className="p-6 border-t bg-slate-50 flex gap-4">
                             <button onClick={onClose} className="flex-1 py-4 bg-white border-2 border-slate-200 rounded-2xl font-black hover:bg-slate-100 transition-all uppercase tracking-widest">ยกเลิก</button>
-                            <button onClick={()=>onSave(exam.id, { ...data, questions })} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl hover:bg-green-700 transition-all active:scale-95 flex justify-center items-center gap-2 text-xl uppercase tracking-tighter">
+                            <button onClick={()=>onSave(exam.id, data.setId, { title: data.title, time: data.time * 60, questions })} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl hover:bg-green-700 transition-all active:scale-95 flex justify-center items-center gap-2 text-xl uppercase tracking-tighter">
                                 บันทึกการเปลี่ยนแปลง
                             </button>
                         </div>
@@ -394,18 +466,23 @@
             const [student, setStudent] = useState(null);
             const [studentIdInput, setStudentIdInput] = useState('');
             const [adminPassword, setAdminPassword] = useState('');
-            const [exams, setExams] = useState([]);
-            const [currentExam, setCurrentExam] = useState(null);
+            const [subjects, setSubjects] = useState([]); // [{ id, title }]
+            const [examSets, setExamSets] = useState({}); // { subjectId: [{ setId, title, timeLimit, questions }] }
+            const [currentSubject, setCurrentSubject] = useState(null);
+            const [currentExamSet, setCurrentExamSet] = useState(null);
             const [adminTab, setAdminTab] = useState('dashboard');
             const [adminTimeLimitInput, setAdminTimeLimitInput] = useState(5); 
             const [adminClassroomInput, setAdminClassroomInput] = useState('All');
             const [monitorFilterRoom, setMonitorFilterRoom] = useState('All'); 
             const [dashboardData, setDashboardData] = useState([]);
             const [editingExam, setEditingExam] = useState(null); 
+            const [editingExamSet, setEditingExamSet] = useState(null);
             const [viewingExam, setViewingExam] = useState(null); 
+            const [viewingExamSet, setViewingExamSet] = useState(null);
             const [editingStudent, setEditingStudent] = useState(null);
             const [systemConfig, setSystemConfig] = useState({ 
-                activeExamId: '', 
+                activeSubjectId: '', 
+                activeExamSetId: 1,
                 isOpen: false, 
                 customTimeLimit: 0, 
                 activeClassroom: 'All', 
@@ -427,8 +504,13 @@
             const [adminGlobalPassword, setAdminGlobalPassword] = useState('admin1234');
             
             // State สำหรับสร้างข้อสอบ
-            const [newExam, setNewExam] = useState({ id: '', title: '', time: 60 });
-            const [newQuestions, setNewQuestions] = useState([]);
+            const [newSubject, setNewSubject] = useState({ id: '', title: '' });
+            const [newExamSet, setNewExamSet] = useState({ 
+                setId: 1, 
+                title: '', 
+                time: 60,
+                questions: [] 
+            });
             const [qDraft, setQDraft] = useState({ 
                 text: '', 
                 options: ['', '', '', ''], 
@@ -437,8 +519,9 @@
                 passage: '', 
                 passagePosition: 'top' 
             });
+            const [selectedSubjectId, setSelectedSubjectId] = useState('');
             
-            const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, type: '', id: null });
+            const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, type: '', subjectId: null, setId: null });
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
             
             const timerRef = useRef(null);
@@ -463,30 +546,25 @@
                     .sort();
             }, [dashboardData]);
 
+            const currentSubjectExams = useMemo(() => {
+                if (!systemConfig.activeSubjectId) return [];
+                return examSets[systemConfig.activeSubjectId] || [];
+            }, [examSets, systemConfig.activeSubjectId]);
+
             const selectedExamPreview = useMemo(() => {
-                if (!exams || !Array.isArray(exams) || !systemConfig.activeExamId) return null;
-                return exams.find(e => activeIdMatch(e.id) === activeIdMatch(systemConfig.activeExamId));
-            }, [exams, systemConfig.activeExamId]);
+                if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) return null;
+                const sets = examSets[systemConfig.activeSubjectId] || [];
+                return sets.find(s => s.setId === systemConfig.activeExamSetId);
+            }, [examSets, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
 
             const progress = useMemo(() => {
-                if (!currentExam || !currentExam.questions) return 0;
-                const answeredCount = currentExam.questions.filter(q => answers[q.id] !== undefined).length;
-                return Math.round((answeredCount / currentExam.questions.length) * 100);
-            }, [answers, currentExam]);
+                if (!currentExamSet || !currentExamSet.questions) return 0;
+                const answeredCount = currentExamSet.questions.filter(q => answers[q.id] !== undefined).length;
+                return Math.round((answeredCount / currentExamSet.questions.length) * 100);
+            }, [answers, currentExamSet]);
 
             // --- Database Methods ---
-            const fetchExams = async () => {
-                try {
-                    const snap = await window.fb.getDocs(window.fb.collection(window.db, "exams"));
-                    const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    setExams(data);
-                    return data;
-                } catch (err) { 
-                    console.error(err);
-                    return []; 
-                }
-            };
-
+            
             const exportToCSV = useCallback(() => {
                 const filterRoom = monitorFilterRoom;
                 const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom).trim() === filterRoom.trim());
@@ -495,6 +573,9 @@
                     showToast('ไม่มีข้อมูลสำหรับการส่งออก', 'error');
                     return;
                 }
+
+                const subjectTitle = subjects.find(s => s.id === systemConfig.activeSubjectId)?.title || '';
+                const examSetTitle = selectedExamPreview?.title || '';
 
                 const headers = ["รหัสนักเรียน", "ชื่อ", "นามสกุล", "ห้อง", "คะแนน", "สถานะ", "หมายเหตุ"];
                 const rows = filtered.map(d => [
@@ -512,14 +593,14 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.href = url; 
-                link.download = `ExamReport_${systemConfig.activeExamId}_${Date.now()}.csv`;
+                link.download = `${subjectTitle}_${examSetTitle}_${Date.now()}.csv`;
                 document.body.appendChild(link);
                 link.click(); 
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
                 
                 showToast('ส่งออกรายงานสำเร็จ');
-            }, [dashboardData, monitorFilterRoom, systemConfig.activeExamId, showToast]);
+            }, [dashboardData, monitorFilterRoom, systemConfig.activeSubjectId, systemConfig.activeExamSetId, selectedExamPreview, subjects, showToast]);
 
             const handleToggleExam = async (isOpen) => {
                 setLoading(true);
@@ -563,7 +644,9 @@
                 
                 setLoading(true);
                 try {
-                    await window.fb.deleteDoc(window.fb.doc(window.db, "submissions", `${studentId}_${systemConfig.activeExamId}`));
+                    await window.fb.deleteDoc(
+                        window.fb.doc(window.db, "submissions", `${studentId}_${systemConfig.activeSubjectId}_${systemConfig.activeExamSetId}`)
+                    );
                     showToast("รีเซ็ตสถานะเรียบร้อย");
                 } catch (err) { 
                     showToast(err.message, 'error');
@@ -571,76 +654,204 @@
                 setLoading(false);
             };
 
-            const handleChangeExamSubject = async (examId) => {
-                const found = exams.find(e => activeIdMatch(e.id) === activeIdMatch(examId));
-                if (found) setAdminTimeLimitInput(found.timeLimit / 60);
-                
+            const handleChangeSubject = async (subjectId) => {
+    setLoading(true);
+    try {
+        // อัปเดตค่าใน Firestore
+        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
+            activeSubjectId: subjectId,
+            activeExamSetId: 1 
+        });
+        
+        // อัปเดตเวลาเริ่มต้นจากชุดข้อสอบแรก
+        const sets = examSets[subjectId] || [];
+        if (sets.length > 0) {
+            setAdminTimeLimitInput(sets[0].timeLimit / 60);
+        }
+        
+        showToast('เปลี่ยนวิชาเรียบร้อย');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+    setLoading(false);
+};
+            const handleChangeExamSet = async (setId) => {
+                const setIdNum = parseInt(setId);
+                setLoading(true);
                 try {
-                    await window.fb.updateDoc(window.fb.doc(window.db,"config","system"), {activeExamId: examId});
-                    showToast('เปลี่ยนวิชาสอบเรียบร้อย');
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
+                        activeExamSetId: setIdNum 
+                    });
+                    
+                    // อัปเดตเวลาจากชุดข้อสอบที่เลือก
+                    const sets = examSets[systemConfig.activeSubjectId] || [];
+                    const selectedSet = sets.find(s => s.setId === setIdNum);
+                    if (selectedSet) {
+                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+                    }
+                    
+                    showToast('เปลี่ยนชุดข้อสอบเรียบร้อย');
                 } catch (err) {
                     showToast(err.message, 'error');
                 }
+                setLoading(false);
             };
 
             const handleFileSelect = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                setLoading(true);
-                setLoadingMessage('กำลังอ่านไฟล์...');
-                
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const result = await mammoth.extractRawText({ arrayBuffer });
-                    
-                    // แปลงข้อความที่ได้เป็นโครงสร้างข้อสอบเบื้องต้น
-                    const lines = result.value.split('\n').filter(line => line.trim());
-                    
-                    // สร้างข้อสอบตัวอย่างจากไฟล์
-                    const newQuestionsTemp = [];
-                    let currentQuestion = null;
-                    
-                    lines.forEach(line => {
-                        if (line.match(/^\d+\./)) {
-                            if (currentQuestion && currentQuestion.text) {
-                                newQuestionsTemp.push(currentQuestion);
-                            }
-                            currentQuestion = {
-                                text: line.replace(/^\d+\./, '').trim(),
-                                options: ['', '', '', ''],
-                                correct: 0,
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setLoading(true);
+    setLoadingMessage('กำลังอ่านไฟล์...');
+    
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        
+        // แยกบรรทัดและกรองบรรทัดว่าง
+        const lines = result.value.split('\n').filter(line => line.trim() !== '');
+        
+        const newQuestionsTemp = [];
+        let currentQuestion = null;
+        let collectingOptions = false;
+        let currentOptions = [];
+        let correctAnswer = null;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // ตรวจสอบว่าเป็นข้อใหม่หรือไม่ (ขึ้นต้นด้วยตัวเลขและจุด)
+            if (line.match(/^\d+\./)) {
+                // ถ้ามีคำถามก่อนหน้า ให้บันทึก
+                if (currentQuestion && currentQuestion.text) {
+                    // หาคำตอบที่ถูกต้องจากตัวเลือก
+                    if (correctAnswer !== null && currentOptions.length > 0) {
+                        const correctIndex = currentOptions.findIndex(opt => 
+                            opt.startsWith(correctAnswer + '.') || 
+                            opt.match(new RegExp('^' + correctAnswer + '\\.'))
+                        );
+                        
+                        if (correctIndex !== -1) {
+                            // สร้างคำถามพร้อมตัวเลือก
+                            const questionData = {
+                                id: Date.now() + Math.random() + i,
+                                text: currentQuestion.text,
+                                options: currentOptions.map(opt => {
+                                    // ตัดตัวอักษรนำหน้าออก (A. B. C. D.)
+                                    const optMatch = opt.match(/^[A-D]\.\s*(.+)/);
+                                    return optMatch ? optMatch[1].trim() : opt;
+                                }),
+                                correct: correctIndex,
                                 sectionTitle: '',
                                 passage: '',
-                                passagePosition: 'top',
-                                id: Date.now() + Math.random() + newQuestionsTemp.length
+                                passagePosition: 'top'
                             };
-                        } else if (line.match(/^[ก-ฮ]\)/) && currentQuestion) {
-                            const optionIndex = currentQuestion.options.findIndex(o => o === '');
-                            if (optionIndex !== -1) {
-                                currentQuestion.options[optionIndex] = line.replace(/^[ก-ฮ]\)/, '').trim();
-                            }
+                            newQuestionsTemp.push(questionData);
                         }
-                    });
-                    
-                    if (currentQuestion && currentQuestion.text) {
-                        newQuestionsTemp.push(currentQuestion);
                     }
-                    
-                    if (newQuestionsTemp.length > 0) {
-                        setNewQuestions(prev => [...prev, ...newQuestionsTemp]);
-                        showToast(`นำเข้าข้อสอบ ${newQuestionsTemp.length} ข้อเรียบร้อย`);
-                    } else {
-                        showToast('ไม่พบโครงสร้างข้อสอบในไฟล์', 'error');
-                    }
-                    
-                } catch (err) {
-                    showToast('เกิดข้อผิดพลาดในการอ่านไฟล์', 'error');
                 }
                 
-                setLoading(false);
-                e.target.value = '';
-            };
+                // สร้างคำถามใหม่
+                currentQuestion = {
+                    text: line.replace(/^\d+\./, '').trim()
+                };
+                collectingOptions = true;
+                currentOptions = [];
+                correctAnswer = null;
+            }
+            // ตรวจสอบว่าเป็นตัวเลือก (A. B. C. D.)
+            else if (collectingOptions && line.match(/^[A-D]\./)) {
+                currentOptions.push(line);
+            }
+            // ตรวจสอบว่าเป็นเฉลย (เฉลย: A, เฉลย: B, etc.)
+            else if (line.match(/^เฉลย:\s*([A-D])/i)) {
+                const match = line.match(/^เฉลย:\s*([A-D])/i);
+                if (match) {
+                    correctAnswer = match[1];
+                }
+            }
+            // ถ้าเจอบรรทัดว่างหรือไม่เกี่ยวข้อง
+            else if (line === '') {
+                // ข้ามไป
+            }
+        }
+        
+        // เพิ่มคำถามสุดท้าย
+        if (currentQuestion && currentQuestion.text) {
+            if (correctAnswer !== null && currentOptions.length > 0) {
+                const correctIndex = currentOptions.findIndex(opt => 
+                    opt.startsWith(correctAnswer + '.') || 
+                    opt.match(new RegExp('^' + correctAnswer + '\\.'))
+                );
+                
+                if (correctIndex !== -1) {
+                    const questionData = {
+                        id: Date.now() + Math.random() + 999,
+                        text: currentQuestion.text,
+                        options: currentOptions.map(opt => {
+                            const optMatch = opt.match(/^[A-D]\.\s*(.+)/);
+                            return optMatch ? optMatch[1].trim() : opt;
+                        }),
+                        correct: correctIndex,
+                        sectionTitle: '',
+                        passage: '',
+                        passagePosition: 'top'
+                    };
+                    newQuestionsTemp.push(questionData);
+                }
+            }
+        }
+        
+        // จัดรูปแบบข้อสอบที่นำเข้า
+        const formattedQuestions = formatImportedQuestions(newQuestionsTemp);
+        
+        // แสดงตัวอย่างการนำเข้า
+        if (formattedQuestions.length > 0) {
+            let previewMessage = `📋 พบข้อสอบทั้งหมด ${formattedQuestions.length} ข้อ\n\n`;
+            
+            formattedQuestions.slice(0, 3).forEach((q, idx) => {
+                previewMessage += `ข้อ ${idx + 1}: ${q.text.substring(0, 50)}${q.text.length > 50 ? '...' : ''}\n`;
+                previewMessage += `   ก. ${q.options[0] || ''}\n`;
+                previewMessage += `   ข. ${q.options[1] || ''}\n`;
+                previewMessage += `   ค. ${q.options[2] || ''}\n`;
+                previewMessage += `   ง. ${q.options[3] || ''}\n`;
+                previewMessage += `   ✅ เฉลย: ${String.fromCharCode(3601 + q.correct)}\n\n`;
+            });
+            
+            if (formattedQuestions.length > 3) {
+                previewMessage += `... และอีก ${formattedQuestions.length - 3} ข้อ\n\n`;
+            }
+            
+            previewMessage += `✅ ตัวเลือกที่นำเข้าได้: 4 ตัวเลือกต่อข้อ\n`;
+            previewMessage += `⚠️ ตรวจสอบความถูกต้องก่อนบันทึก`;
+            
+            // แสดงตัวอย่างและถามผู้ใช้ว่าต้องการนำเข้าหรือไม่
+            if (confirm(previewMessage + '\n\nต้องการนำเข้าข้อสอบทั้งหมดนี้หรือไม่?')) {
+                setNewExamSet(prev => ({
+                    ...prev,
+                    questions: [...prev.questions, ...formattedQuestions]
+                }));
+                showToast(`✅ นำเข้าข้อสอบ ${formattedQuestions.length} ข้อเรียบร้อย`);
+            } else {
+                showToast('❌ ยกเลิกการนำเข้า', 'error');
+            }
+        } else {
+            showToast('❌ ไม่พบโครงสร้างข้อสอบในไฟล์ กรุณาตรวจสอบรูปแบบไฟล์', 'error');
+            setTimeout(() => {
+                showFileFormatExample();
+            }, 1000);
+        }
+        
+    } catch (err) {
+        console.error(err);
+        showToast('❌ เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, 'error');
+    }
+    
+    setLoading(false);
+    e.target.value = '';
+};
+
+// แก้ไขใน handleFileSelect ก่อน setNewExamSet
 
             const addQuestionToDraft = () => {
                 if (!qDraft.text || !qDraft.text.trim()) {
@@ -654,11 +865,14 @@
                     return;
                 }
                 
-                setNewQuestions([...newQuestions, { 
-                    ...qDraft, 
-                    id: Date.now() + Math.random(),
-                    options: qDraft.options.map(o => o.trim())
-                }]);
+                setNewExamSet(prev => ({
+                    ...prev,
+                    questions: [...prev.questions, { 
+                        ...qDraft, 
+                        id: Date.now() + Math.random(),
+                        options: qDraft.options.map(o => o.trim())
+                    }]
+                }));
                 
                 setQDraft({ 
                     text: '', 
@@ -672,47 +886,39 @@
                 showToast('เพิ่มข้อสอบเรียบร้อย');
             };
 
-            const handleCreateExamSubmit = async () => {
-                if (!newExam.id || !newExam.id.trim()) {
+            const handleCreateSubject = async () => {
+                if (!newSubject.id || !newSubject.id.trim()) {
                     showToast('กรุณากรอกรหัสวิชา', 'error');
                     return;
                 }
-                if (!newExam.title || !newExam.title.trim()) {
+                if (!newSubject.title || !newSubject.title.trim()) {
                     showToast('กรุณากรอกชื่อวิชา', 'error');
-                    return;
-                }
-                if (newQuestions.length === 0) {
-                    showToast('กรุณาเพิ่มข้อสอบอย่างน้อย 1 ข้อ', 'error');
                     return;
                 }
                 
                 setLoading(true);
-                setLoadingMessage('กำลังบันทึกข้อสอบ...');
+                setLoadingMessage('กำลังบันทึกวิชา...');
                 
                 try {
                     // ตรวจสอบว่ามีรหัสวิชานี้แล้วหรือไม่
-                    const existing = await window.fb.getDoc(window.fb.doc(window.db, "exams", newExam.id.trim()));
+                    const existing = await window.fb.getDoc(window.fb.doc(window.db, "subjects", newSubject.id.trim()));
                     if (existing.exists()) {
-                        if (!confirm('รหัสวิชานี้มีอยู่แล้ว คุณต้องการแทนที่ข้อมูลเดิมหรือไม่?')) {
-                            setLoading(false);
-                            return;
-                        }
+                        showToast('รหัสวิชานี้มีอยู่แล้ว', 'error');
+                        setLoading(false);
+                        return;
                     }
                     
                     await window.fb.setDoc(
-                        window.fb.doc(window.db, "exams", newExam.id.trim()), 
+                        window.fb.doc(window.db, "subjects", newSubject.id.trim()), 
                         {
-                            title: newExam.title.trim(),
-                            timeLimit: newExam.time * 60,
-                            questions: newQuestions.filter(q => q.text && q.text.trim())
+                            title: newSubject.title.trim(),
+                            createdAt: new Date().toISOString()
                         }
                     );
                     
-                    showToast('สร้างข้อสอบสำเร็จ');
-                    setNewExam({ id: '', title: '', time: 60 });
-                    setNewQuestions([]);
-                    setAdminTab('manage_exams');
-                    await fetchExams();
+                    showToast('สร้างวิชาเรียบร้อย');
+                    setNewSubject({ id: '', title: '' });
+                    await fetchAllData();
                 } catch (err) {
                     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 }
@@ -720,10 +926,63 @@
                 setLoading(false);
             };
 
-            const prepareExamFromData = useCallback((examData) => {
-                if (!examData || !examData.questions) return;
+            const handleCreateExamSet = async () => {
+                if (!selectedSubjectId) {
+                    showToast('กรุณาเลือกวิชา', 'error');
+                    return;
+                }
+                if (!newExamSet.title || !newExamSet.title.trim()) {
+                    showToast('กรุณากรอกชื่อชุดข้อสอบ', 'error');
+                    return;
+                }
+                if (newExamSet.questions.length === 0) {
+                    showToast('กรุณาเพิ่มข้อสอบอย่างน้อย 1 ข้อ', 'error');
+                    return;
+                }
                 
-                let processed = JSON.parse(JSON.stringify(examData));
+                setLoading(true);
+                setLoadingMessage('กำลังบันทึกชุดข้อสอบ...');
+                
+                try {
+                    // หา setId ล่าสุด
+                    const existingSets = examSets[selectedSubjectId] || [];
+                    const maxSetId = existingSets.length > 0 ? Math.max(...existingSets.map(s => s.setId)) : 0;
+                    const newSetId = maxSetId + 1;
+                    
+                    await window.fb.setDoc(
+                        window.fb.doc(window.db, "subjects", selectedSubjectId, "examSets", newSetId.toString()), 
+                        {
+                            title: newExamSet.title.trim(),
+                            timeLimit: newExamSet.time * 60,
+                            questions: newExamSet.questions.filter(q => q.text && q.text.trim()),
+                            createdAt: new Date().toISOString()
+                        }
+                    );
+                    
+                    showToast('สร้างชุดข้อสอบสำเร็จ');
+                    setNewExamSet({ 
+                        setId: 1, 
+                        title: '', 
+                        time: 60,
+                        questions: [] 
+                    });
+                    setSelectedSubjectId('');
+                    setQDraft({ text: '', options: ['', '', '', ''], correct: 0, sectionTitle: '', passage: '', passagePosition: 'top' });
+                    await fetchAllData();
+                } catch (err) {
+                    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+                }
+                
+                setLoading(false);
+            };
+
+            const prepareExamFromData = useCallback((subjectId, setId) => {
+                const sets = examSets[subjectId] || [];
+                const selectedSet = sets.find(s => s.setId === setId);
+                
+                if (!selectedSet) return;
+                
+                let processed = JSON.parse(JSON.stringify(selectedSet));
                 const hasStructure = processed.questions.some(q => q.sectionTitle || q.passage);
                 if (!hasStructure) processed.questions = shuffleArray(processed.questions);
                 
@@ -737,11 +996,14 @@
                     };
                 });
                 
-                setCurrentExam({ 
+                setCurrentExamSet({ 
                     ...processed, 
                     timeLimit: systemConfig.customTimeLimit || processed.timeLimit 
                 });
-            }, [systemConfig.customTimeLimit]);
+                
+                const subject = subjects.find(s => s.id === subjectId);
+                setCurrentSubject(subject);
+            }, [examSets, subjects, systemConfig.customTimeLimit]);
 
             const submitExam = useCallback(async (reason = 'Normal', isCheat = false) => {
                 if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted'].includes(reason)) return;
@@ -751,26 +1013,32 @@
                 setLoadingMessage('กำลังส่งคำตอบ...');
                 
                 let score = 0;
-                if (currentExam && currentExam.questions) {
-                    currentExam.questions.forEach(q => { 
+                if (currentExamSet && currentExamSet.questions) {
+                    currentExamSet.questions.forEach(q => { 
                         if(answersRef.current[q.id] === q.correct) score++; 
                     });
                 }
                 
                 try {
-                    await window.fb.setDoc(window.fb.doc(window.db, "submissions", `${student.id}_${currentExam.id}`), {
-                        studentId: student.id, 
-                        studentName: `${student.name} ${student.surname}`, 
-                        examId: currentExam.id,
-                        score: score, 
-                        totalScore: currentExam.questions.length, 
-                        status: isCheat ? 'CHEATED' : 'COMPLETED', 
-                        reason, 
-                        answers: answersRef.current, 
-                        submittedAt: new Date().toISOString()
-                    });
+                    await window.fb.setDoc(
+                        window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
+                        {
+                            studentId: student.id, 
+                            studentName: `${student.name} ${student.surname}`, 
+                            subjectId: currentSubject.id,
+                            subjectTitle: currentSubject.title,
+                            examSetId: currentExamSet.setId,
+                            examSetTitle: currentExamSet.title,
+                            score: score, 
+                            totalScore: currentExamSet.questions.length, 
+                            status: isCheat ? 'CHEATED' : 'COMPLETED', 
+                            reason, 
+                            answers: answersRef.current, 
+                            submittedAt: new Date().toISOString()
+                        }
+                    );
                     
-                    showToast(`ส่งกระดาษคำตอบเรียบร้อย! คะแนน: ${score}/${currentExam.questions.length}`);
+                    showToast(`ส่งกระดาษคำตอบเรียบร้อย! คะแนน: ${score}/${currentExamSet.questions.length}`);
                     
                     setTimeout(() => {
                         window.location.reload();
@@ -781,7 +1049,7 @@
                     console.error(err);
                 }
                 setLoading(false);
-            }, [currentExam, student, examStatus, showToast]);
+            }, [currentExamSet, currentSubject, student, examStatus, showToast]);
 
             const handleStudentLogin = async (e) => {
                 e.preventDefault(); 
@@ -802,13 +1070,16 @@
                         const sData = { id: snap.id, ...snap.data() };
                         setStudent(sData);
                         
-                        const activeId = activeIdMatch(systemConfig.activeExamId);
+                        const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
+                        const activeSetId = systemConfig.activeExamSetId;
                         
-                        if (systemConfig.isOpen && activeId) { 
-                            const allExams = await fetchExams();
-                            const found = allExams.find(e => activeIdMatch(e.id) === activeId);
+                        if (systemConfig.isOpen && activeSubjectId && activeSetId) { 
+                            await fetchAllData();
+                            const sets = examSets[activeSubjectId] || [];
+                            const found = sets.find(s => s.setId === activeSetId);
+                            
                             if (found) { 
-                                prepareExamFromData(found); 
+                                prepareExamFromData(activeSubjectId, activeSetId); 
                                 setStep('instructions');
                             } else {
                                 setStep('waiting_room');
@@ -833,12 +1104,12 @@
                     showToast('ระบบปิดการสอบอยู่', 'error');
                     return;
                 }
-                if (!currentExam) {
+                if (!currentExamSet) {
                     showToast('ข้อมูลข้อสอบไม่พร้อม', 'error');
                     return;
                 }
                 
-                setTimeLeft(currentExam.timeLimit || 3600); 
+                setTimeLeft(currentExamSet.timeLimit || 3600); 
                 setStep('exam'); 
                 setExamStatus('active');
                 
@@ -856,32 +1127,46 @@
             };
 
             const handleDeleteConfirm = async () => {
-                if (!confirmDelete.id) return;
+                if (!confirmDelete.subjectId) return;
                 
                 setLoading(true);
                 setLoadingMessage('กำลังลบข้อมูล...');
                 
                 try {
                     if (confirmDelete.type === 'student') {
-                        await window.fb.deleteDoc(window.fb.doc(window.db, "students", confirmDelete.id));
+                        await window.fb.deleteDoc(window.fb.doc(window.db, "students", confirmDelete.subjectId));
                         showToast('ลบข้อมูลนักเรียนเรียบร้อย');
-                    } else if (confirmDelete.type === 'exam') {
-                        await window.fb.deleteDoc(window.fb.doc(window.db, "exams", confirmDelete.id));
-                        showToast('ลบข้อสอบเรียบร้อย');
-                        await fetchExams();
+                    } else if (confirmDelete.type === 'subject') {
+                        // ลบ exam sets ทั้งหมดใน subject ก่อน
+                        const sets = examSets[confirmDelete.subjectId] || [];
+                        for (const set of sets) {
+                            await window.fb.deleteDoc(
+                                window.fb.doc(window.db, "subjects", confirmDelete.subjectId, "examSets", set.setId.toString())
+                            );
+                        }
+                        // ลบ subject
+                        await window.fb.deleteDoc(window.fb.doc(window.db, "subjects", confirmDelete.subjectId));
+                        showToast('ลบวิชาและชุดข้อสอบเรียบร้อย');
+                        await fetchAllData();
+                    } else if (confirmDelete.type === 'examSet') {
+                        await window.fb.deleteDoc(
+                            window.fb.doc(window.db, "subjects", confirmDelete.subjectId, "examSets", confirmDelete.setId.toString())
+                        );
+                        showToast('ลบชุดข้อสอบเรียบร้อย');
+                        await fetchAllData();
                     }
                 } catch (err) {
                     showToast(err.message, 'error');
                 }
                 
                 setLoading(false);
-                setConfirmDelete({ isOpen: false, type: '', id: null });
+                setConfirmDelete({ isOpen: false, type: '', subjectId: null, setId: null });
             };
 
-            // --- Effects ---
+                        // --- Effects ---
             useEffect(() => {
                 const init = async () => {
-                    await fetchExams();
+                    await fetchAllData();
                     
                     // ตรวจสอบและสร้าง admin config ถ้ายังไม่มี
                     const adminDoc = await window.fb.getDoc(window.fb.doc(window.db, "config", "admin"));
@@ -946,7 +1231,8 @@
                             
                             const subQuery = window.fb.query(
                                 window.fb.collection(window.db, "submissions"), 
-                                window.fb.where("examId", "==", systemConfig.activeExamId || "NONE")
+                                window.fb.where("subjectId", "==", systemConfig.activeSubjectId || "NONE"),
+                                window.fb.where("examSetId", "==", systemConfig.activeExamSetId || 0)
                             );
                             
                             unsubSubmissions = window.fb.onSnapshot(subQuery, (subSnap) => {
@@ -978,11 +1264,11 @@
                 }
                 
                 return cleanupListeners;
-            }, [step, adminTab, systemConfig.activeExamId]);
+            }, [step, adminTab, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
 
             useEffect(() => {
                 const autoRedirect = async () => {
-                    if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeExamId || !student) return;
+                    if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeSubjectId || !systemConfig.activeExamSetId || !student) return;
                     
                     const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
                     const studentRoom = String(student.classroom || '').trim().toLowerCase();
@@ -992,11 +1278,12 @@
                         setLoading(true); 
                         setLoadingMessage('กำลังเตรียมข้อมูลข้อสอบ...');
                         
-                        const currentExamsList = await fetchExams();
-                        const found = currentExamsList.find(e => activeIdMatch(e.id) === activeIdMatch(systemConfig.activeExamId));
+                        await fetchAllData();
+                        const sets = examSets[systemConfig.activeSubjectId] || [];
+                        const found = sets.find(s => s.setId === systemConfig.activeExamSetId);
                         
                         if (found) { 
-                            prepareExamFromData(found); 
+                            prepareExamFromData(systemConfig.activeSubjectId, systemConfig.activeExamSetId); 
                             setStep('instructions');
                         }
                         
@@ -1005,7 +1292,7 @@
                 };
                 
                 autoRedirect();
-            }, [systemConfig.isOpen, systemConfig.activeExamId, systemConfig.activeClassroom, step, student, prepareExamFromData]);
+            }, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, step, student, prepareExamFromData, examSets]);
 
             // Anti-Cheat
             useEffect(() => {
@@ -1046,6 +1333,31 @@
                 };
             }, [step, examStatus, submitExam, showToast]);
 
+            // ✅ ใส่ useEffect สำหรับตรวจสอบการนำเข้าตรงนี้ (ต่อจาก useEffect อื่นๆ)
+            // เพิ่ม useEffect สำหรับตรวจสอบการนำเข้า
+            useEffect(() => {
+                // ถ้ามีการนำเข้าข้อสอบใหม่ และมีจำนวนเพิ่มขึ้น
+                if (newExamSet.questions.length > 0) {
+                    const lastQuestion = newExamSet.questions[newExamSet.questions.length - 1];
+                    const optionCount = lastQuestion.options.filter(o => o && o.trim() !== '').length;
+                    
+                    if (optionCount < 2) {
+                        showToast('⚠️ ข้อสอบบางข้อมีตัวเลือกน้อยกว่า 2 ตัวเลือก กรุณาตรวจสอบ', 'error');
+                    }
+                }
+            }, [newExamSet.questions]);
+            // เพิ่ม useEffect เพื่อติดตามการเปลี่ยนแปลงของ systemConfig
+useEffect(() => {
+    console.log('systemConfig updated:', systemConfig);
+    // เมื่อ systemConfig เปลี่ยนแปลง ให้อัปเดตค่าต่างๆ
+    if (systemConfig.activeSubjectId) {
+        // อัปเดตเวลาเริ่มต้นจากชุดข้อสอบแรก
+        const sets = examSets[systemConfig.activeSubjectId] || [];
+        if (sets.length > 0) {
+            setAdminTimeLimitInput(sets[0].timeLimit / 60);
+        }
+    }
+}, [systemConfig, examSets]);
             // Manage Students Tab
             const renderManageStudents = () => (
                 <div className="space-y-6">
@@ -1086,7 +1398,7 @@
                                                     <Edit size={20}/>
                                                 </button>
                                                 <button 
-                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', id: std.id })} 
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', subjectId: std.id, setId: null })} 
                                                     className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-red-500 transition-all shadow-sm"
                                                 >
                                                     <Trash size={20}/>
@@ -1103,52 +1415,94 @@
 
             // Manage Exams Tab
             const renderManageExams = () => (
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <h3 className="font-black text-2xl border-b-2 border-slate-50 pb-4 flex items-center gap-3 uppercase tracking-tighter">
-                        <List size={28} className="text-blue-600"/> คลังข้อสอบ
+                        <List size={28} className="text-blue-600"/> จัดการวิชาและข้อสอบ
                     </h3>
                     
-                    <div className="grid grid-cols-1 gap-6">
-                        {exams.map(ex => (
-                            <div key={ex.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8 hover:border-blue-200 transition-all">
-                                <div className="flex-1">
-                                    <h4 className="font-black text-3xl tracking-tight mb-2 leading-tight">
-                                        {ex.title}
-                                    </h4>
-                                    <div className="flex gap-6 text-xs text-slate-400 font-black uppercase">
-                                        <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg">
-                                            ID: {ex.id}
-                                        </span>
-                                        <span className="flex items-center gap-2 font-black text-slate-600">
-                                            <FileText size={16}/> {ex.questions?.length || 0} ข้อ
-                                        </span>
-                                        <span className="flex items-center gap-2 font-black text-slate-600">
-                                            <Clock size={16}/> {ex.timeLimit / 60} นาที
-                                        </span>
+                    {/* Subjects List */}
+                    <div className="space-y-6">
+                        {subjects.map(subject => (
+                            <div key={subject.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h4 className="font-black text-2xl">{subject.title}</h4>
+                                        <p className="text-sm text-slate-400 font-black">รหัสวิชา: {subject.id}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedSubjectId(subject.id);
+                                                setAdminTab('create_exam');
+                                            }} 
+                                            className="p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"
+                                            title="เพิ่มชุดข้อสอบ"
+                                        >
+                                            <Plus size={20}/>
+                                        </button>
+                                        <button 
+                                            onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', subjectId: subject.id, setId: null })} 
+                                            className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all"
+                                            title="ลบวิชา"
+                                        >
+                                            <Trash size={20}/>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex gap-3 shrink-0">
-                                    <button 
-                                        onClick={() => setViewingExam(ex)} 
-                                        className="p-5 bg-slate-50 text-slate-400 rounded-3xl hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"
-                                    >
-                                        <Eye size={24}/>
-                                    </button>
-                                    <button 
-                                        onClick={() => setEditingExam(ex)} 
-                                        className="p-5 bg-slate-50 text-slate-400 rounded-3xl hover:bg-slate-800 hover:text-white transition-all shadow-sm"
-                                    >
-                                        <Edit size={24}/>
-                                    </button>
-                                    <button 
-                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'exam', id: ex.id })} 
-                                        className="p-5 bg-slate-50 text-slate-400 rounded-3xl hover:bg-red-50 hover:text-red-500 transition-all shadow-sm"
-                                    >
-                                        <Trash size={24}/>
-                                    </button>
+                                
+                                {/* Exam Sets */}
+                                <div className="space-y-4">
+                                    <h5 className="font-black text-sm text-slate-400 uppercase tracking-wider">ชุดข้อสอบทั้งหมด</h5>
+                                    {examSets[subject.id]?.length > 0 ? (
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {examSets[subject.id].map(set => (
+                                                <div key={set.setId} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex justify-between items-center">
+                                                    <div>
+                                                        <h6 className="font-black text-lg">ชุดที่ {set.setId}: {set.title}</h6>
+                                                        <div className="flex gap-4 text-xs text-slate-500 font-bold mt-2">
+                                                            <span>จำนวนข้อ: {set.questions?.length || 0} ข้อ</span>
+                                                            <span>เวลา: {set.timeLimit / 60} นาที</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setEditingExam(set);
+                                                                setEditingExamSet({ subjectId: subject.id, setId: set.setId });
+                                                            }} 
+                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                                        >
+                                                            <Edit size={18}/>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setViewingExam({ ...set, id: subject.id })} 
+                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
+                                                        >
+                                                            <Eye size={18}/>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', subjectId: subject.id, setId: set.setId })} 
+                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
+                                                        >
+                                                            <Trash size={18}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 italic">ยังไม่มีชุดข้อสอบ</p>
+                                    )}
                                 </div>
                             </div>
                         ))}
+                        
+                        {subjects.length === 0 && (
+                            <div className="text-center p-12 bg-slate-50 rounded-3xl border-2 border-dashed">
+                                <p className="text-slate-400 font-black">ยังไม่มีวิชาในระบบ</p>
+                                <p className="text-sm text-slate-300 mt-2">ไปที่แท็บ "สร้างข้อสอบ" เพื่อเพิ่มวิชาและชุดข้อสอบ</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -1156,158 +1510,192 @@
             // Create Exam Tab
             const renderCreateExam = () => (
                 <div className="space-y-8 max-w-4xl mx-auto">
-                    {/* Word Import */}
-                    <div className="bg-emerald-50 p-8 rounded-[2.5rem] border-2 border-emerald-100 flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-emerald-800">
-                            <div className="p-4 bg-emerald-600 text-white rounded-3xl shadow-lg">
-                                <FileText size={32}/>
-                            </div>
-                            <div>
-                                <h4 className="font-black text-2xl uppercase tracking-tighter">
-                                    นำเข้าจาก Word
-                                </h4>
-                                <p className="text-sm font-bold text-emerald-600">
-                                    อัปโหลดไฟล์ .docx เพื่อแปลงเป็นข้อสอบ
-                                </p>
-                            </div>
-                        </div>
-                        <label className="bg-emerald-600 text-white px-8 py-4 rounded-3xl cursor-pointer flex items-center gap-2 font-black hover:bg-emerald-700 transition-all shadow-xl uppercase tracking-tighter">
-                            <Upload size={20}/> เลือกไฟล์
-                            <input type="file" accept=".docx" onChange={handleFileSelect} className="hidden" />
-                        </label>
-                    </div>
-
-                    {/* Exam Info */}
-                    <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 space-y-6 shadow-sm">
-                        <h3 className="font-black text-slate-300 text-[10px] uppercase tracking-[0.3em] mb-4">
-                            ขั้นตอนที่ 1: ข้อมูลข้อสอบ
+                    {/* Create Subject */}
+                    <div className="bg-blue-50 p-8 rounded-[2.5rem] border-2 border-blue-100">
+                        <h3 className="font-black text-xl mb-6 flex items-center gap-2">
+                            <Plus size={24} className="text-blue-600"/> สร้างวิชาใหม่
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <input 
                                 type="text" 
-                                placeholder="รหัสวิชา" 
-                                value={newExam.id} 
-                                onChange={e => setNewExam({...newExam, id: e.target.value})} 
-                                className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                placeholder="รหัสวิชา (เช่น MATH101)" 
+                                value={newSubject.id} 
+                                onChange={e => setNewSubject({...newSubject, id: e.target.value})} 
+                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white" 
                             />
                             <input 
                                 type="text" 
                                 placeholder="ชื่อวิชา" 
-                                value={newExam.title} 
-                                onChange={e => setNewExam({...newExam, title: e.target.value})} 
-                                className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                value={newSubject.title} 
+                                onChange={e => setNewSubject({...newSubject, title: e.target.value})} 
+                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white" 
                             />
-                            <input 
-                                type="number" 
-                                placeholder="เวลา (นาที)" 
-                                value={newExam.time} 
-                                onChange={e => setNewExam({...newExam, time: parseInt(e.target.value) || 0})} 
-                                className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
-                                min="1"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Question Builder */}
-                    <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 space-y-8 shadow-sm">
-                        <h3 className="font-black text-slate-300 text-[10px] uppercase tracking-[0.3em] mb-4">
-                            ขั้นตอนที่ 2: สร้างข้อสอบ
-                        </h3>
-                        
-                        <div className="grid grid-cols-1 gap-6">
-                            <input 
-                                type="text" 
-                                placeholder="หัวข้อส่วน (ถ้ามี)" 
-                                value={qDraft.sectionTitle} 
-                                onChange={e => setQDraft({...qDraft, sectionTitle: e.target.value})} 
-                                className="p-5 border-2 border-slate-50 rounded-3xl bg-blue-50/30 font-bold shadow-inner" 
-                            />
-                            
-                            <textarea 
-                                rows="3" 
-                                placeholder="บทอ่าน (ถ้ามี)" 
-                                value={qDraft.passage} 
-                                onChange={e => setQDraft({...qDraft, passage: e.target.value})} 
-                                className="p-5 border-2 border-slate-50 rounded-3xl bg-amber-50/30 font-bold shadow-inner" 
-                            />
-                            
-                            <div className="flex gap-4">
-                                <select 
-                                    value={qDraft.passagePosition} 
-                                    onChange={e => setQDraft({...qDraft, passagePosition: e.target.value})}
-                                    className="p-3 border-2 border-slate-50 rounded-xl bg-white font-bold"
-                                >
-                                    <option value="top">แสดงบทอ่านด้านบน</option>
-                                    <option value="bottom">แสดงบทอ่านด้านล่าง</option>
-                                </select>
-                            </div>
-                            
-                            <input 
-                                type="text" 
-                                placeholder="โจทย์ข้อสอบ" 
-                                value={qDraft.text} 
-                                onChange={e => setQDraft({...qDraft, text: e.target.value})} 
-                                className="p-6 border-2 border-slate-100 rounded-[2.5rem] font-black text-xl shadow-sm" 
-                            />
-                            
-                            <div className="space-y-4">
-                                {qDraft.options.map((opt, i) => (
-                                    <div key={i} className="flex gap-4 items-center">
-                                        <input 
-                                            type="radio" 
-                                            checked={qDraft.correct === i} 
-                                            onChange={() => setQDraft({...qDraft, correct: i})} 
-                                            className="w-8 h-8 accent-green-600" 
-                                        />
-                                        <input 
-                                            type="text" 
-                                            value={opt} 
-                                            onChange={e => {
-                                                const n = [...qDraft.options];
-                                                n[i] = e.target.value;
-                                                setQDraft({...qDraft, options: n});
-                                            }} 
-                                            className={`flex-1 p-5 border-2 rounded-3xl text-lg font-black ${
-                                                qDraft.correct === i 
-                                                    ? 'bg-green-50 border-green-400' 
-                                                    : 'bg-slate-50/50 border-slate-50'
-                                            }`}
-                                            placeholder={`ตัวเลือกที่ ${i + 1}`} 
-                                        />
-                                    </div>
-                                ))}
-                                
-                                {qDraft.options.length < 6 && (
-                                    <button 
-                                        onClick={() => setQDraft(p => ({
-                                            ...p, 
-                                            options: [...p.options, '']
-                                        }))} 
-                                        className="text-sm text-blue-600 font-black uppercase"
-                                    >
-                                        + เพิ่มตัวเลือก
-                                    </button>
-                                )}
-                            </div>
-                            
                             <button 
-                                onClick={addQuestionToDraft} 
-                                className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-2xl uppercase tracking-tighter shadow-xl flex items-center justify-center gap-2"
+                                onClick={handleCreateSubject} 
+                                className="md:col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition-all"
                             >
-                                <Plus size={32}/> เพิ่มข้อสอบ ({newQuestions.length})
+                                สร้างวิชา
                             </button>
                         </div>
                     </div>
 
-                    {/* Publish Button */}
-                    {newQuestions.length > 0 && (
-                        <button 
-                            onClick={handleCreateExamSubmit} 
-                            className="w-full bg-green-600 text-white py-6 rounded-[3rem] font-black text-3xl shadow-2xl uppercase tracking-tighter border-4 border-green-500/20 hover:bg-green-700 transition-all active:scale-95"
+                    {/* Select Subject for Exam Set */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50">
+                        <h3 className="font-black text-xl mb-6">เลือกวิชาสำหรับสร้างชุดข้อสอบ</h3>
+                        <select 
+                            value={selectedSubjectId} 
+                            onChange={e => setSelectedSubjectId(e.target.value)}
+                            className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50 mb-6"
                         >
-                            บันทึกข้อสอบ
-                        </button>
-                    )}
+                            <option value="">-- เลือกวิชา --</option>
+                            {subjects.map(subject => (
+                                <option key={subject.id} value={subject.id}>
+                                    {subject.id} - {subject.title}
+                                </option>
+                            ))}
+                        </select>
+                        
+                        {selectedSubjectId && (
+                            <>
+                                {/* Word Import - แก้ไขส่วนนี้ */}
+<div className="bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-100 flex items-center justify-between mb-6">
+    <div className="flex items-center gap-4">
+        <div className="p-3 bg-emerald-600 text-white rounded-2xl">
+            <FileText size={24}/>
+        </div>
+        <div>
+            <h4 className="font-black">นำเข้าจาก Word</h4>
+            <p className="text-xs text-emerald-600">อัปโหลด .docx เพื่อสร้างข้อสอบ</p>
+        </div>
+    </div>
+    <div className="flex gap-2">
+        <button 
+            onClick={showFileFormatExample}
+            className="bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black hover:bg-slate-300 transition-all text-sm flex items-center gap-1"
+            title="ดูตัวอย่างรูปแบบไฟล์"
+        >
+            <Eye size={18}/> ตัวอย่าง
+        </button>
+        <label className="bg-emerald-600 text-white px-6 py-3 rounded-2xl cursor-pointer font-black hover:bg-emerald-700 transition-all flex items-center gap-2">
+            <Upload size={18}/> เลือกไฟล์
+            <input type="file" accept=".docx" onChange={handleFileSelect} className="hidden" />
+        </label>
+    </div>
+</div>
+
+                                {/* Exam Set Info */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <input 
+                                        type="text" 
+                                        placeholder="ชื่อชุดข้อสอบ" 
+                                        value={newExamSet.title} 
+                                        onChange={e => setNewExamSet({...newExamSet, title: e.target.value})} 
+                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                    />
+                                    <input 
+                                        type="number" 
+                                        placeholder="เวลา (นาที)" 
+                                        value={newExamSet.time} 
+                                        onChange={e => setNewExamSet({...newExamSet, time: parseInt(e.target.value) || 0})} 
+                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                        min="1"
+                                    />
+                                </div>
+
+                                {/* Question Builder */}
+                                <div className="bg-slate-50 p-6 rounded-3xl space-y-6">
+                                    <h4 className="font-black">สร้างข้อสอบ</h4>
+                                    
+                                    <input 
+                                        type="text" 
+                                        placeholder="หัวข้อส่วน (ถ้ามี)" 
+                                        value={qDraft.sectionTitle} 
+                                        onChange={e => setQDraft({...qDraft, sectionTitle: e.target.value})} 
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold" 
+                                    />
+                                    
+                                    <textarea 
+                                        rows="2" 
+                                        placeholder="บทอ่าน (ถ้ามี)" 
+                                        value={qDraft.passage} 
+                                        onChange={e => setQDraft({...qDraft, passage: e.target.value})} 
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold" 
+                                    />
+                                    
+                                    <div className="flex gap-4">
+                                        <select 
+                                            value={qDraft.passagePosition} 
+                                            onChange={e => setQDraft({...qDraft, passagePosition: e.target.value})}
+                                            className="p-3 border-2 border-white rounded-xl bg-white font-bold"
+                                        >
+                                            <option value="top">แสดงด้านบน</option>
+                                            <option value="bottom">แสดงด้านล่าง</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <input 
+                                        type="text" 
+                                        placeholder="โจทย์ข้อสอบ" 
+                                        value={qDraft.text} 
+                                        onChange={e => setQDraft({...qDraft, text: e.target.value})} 
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-black text-lg" 
+                                    />
+                                    
+                                    <div className="space-y-3">
+                                        {qDraft.options.map((opt, i) => (
+                                            <div key={i} className="flex gap-3 items-center">
+                                                <input 
+                                                    type="radio" 
+                                                    checked={qDraft.correct === i} 
+                                                    onChange={() => setQDraft({...qDraft, correct: i})} 
+                                                    className="w-5 h-5 accent-green-600" 
+                                                />
+                                                <input 
+                                                    type="text" 
+                                                    value={opt} 
+                                                    onChange={e => {
+                                                        const n = [...qDraft.options];
+                                                        n[i] = e.target.value;
+                                                        setQDraft({...qDraft, options: n});
+                                                    }} 
+                                                    className={`flex-1 p-3 border-2 rounded-xl font-bold ${
+                                                        qDraft.correct === i ? 'bg-green-50 border-green-400' : 'bg-white border-slate-200'
+                                                    }`}
+                                                    placeholder={`ตัวเลือก ${i + 1}`} 
+                                                />
+                                            </div>
+                                        ))}
+                                        
+                                        {qDraft.options.length < 6 && (
+                                            <button 
+                                                onClick={() => setQDraft(p => ({...p, options: [...p.options, '']}))} 
+                                                className="text-sm text-blue-600 font-black"
+                                            >
+                                                + เพิ่มตัวเลือก
+                                            </button>
+                                        )}
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={addQuestionToDraft} 
+                                        className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black hover:bg-black transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={20}/> เพิ่มข้อสอบ ({newExamSet.questions.length})
+                                    </button>
+                                </div>
+
+                                {/* Publish Button */}
+                                {newExamSet.questions.length > 0 && (
+                                    <button 
+                                        onClick={handleCreateExamSet} 
+                                        className="w-full bg-green-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-green-700 transition-all mt-6"
+                                    >
+                                        บันทึกชุดข้อสอบ
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
             );
 
@@ -1321,7 +1709,7 @@
                         title="ยืนยันการลบ"
                         message="คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถเรียกคืนได้"
                         onConfirm={handleDeleteConfirm}
-                        onCancel={() => setConfirmDelete({ isOpen: false, type: '', id: null })}
+                        onCancel={() => setConfirmDelete({ isOpen: false, type: '', subjectId: null, setId: null })}
                     />
                     
                     {toast.show && (
@@ -1333,25 +1721,30 @@
                     )}
                     
                     {/* Modals */}
-                    {editingExam && (
+                    {editingExam && editingExamSet && (
                         <EditExamModal 
-                            exam={editingExam} 
-                            onClose={() => setEditingExam(null)} 
-                            onSave={async (id, updateData) => {
+                            exam={{ ...editingExam, id: editingExamSet.subjectId }} 
+                            examSet={{ setId: editingExamSet.setId }}
+                            onClose={() => {
+                                setEditingExam(null);
+                                setEditingExamSet(null);
+                            }} 
+                            onSave={async (subjectId, setId, updateData) => {
                                 setLoading(true);
                                 setLoadingMessage('กำลังบันทึกการเปลี่ยนแปลง...');
                                 try { 
                                     await window.fb.updateDoc(
-                                        window.fb.doc(window.db, "exams", id), 
+                                        window.fb.doc(window.db, "subjects", subjectId, "examSets", setId.toString()), 
                                         { 
                                             title: updateData.title, 
-                                            timeLimit: updateData.time * 60, 
+                                            timeLimit: updateData.time, 
                                             questions: updateData.questions 
                                         }
                                     ); 
                                     showToast('บันทึกการเปลี่ยนแปลงเรียบร้อย'); 
                                     setEditingExam(null); 
-                                    await fetchExams(); 
+                                    setEditingExamSet(null);
+                                    await fetchAllData(); 
                                 } catch (err) { 
                                     showToast(err.message, 'error');
                                 }
@@ -1363,7 +1756,11 @@
                     {viewingExam && (
                         <ViewExamModal 
                             exam={viewingExam} 
-                            onClose={() => setViewingExam(null)} 
+                            examSet={viewingExamSet}
+                            onClose={() => {
+                                setViewingExam(null);
+                                setViewingExamSet(null);
+                            }} 
                         />
                     )}
                     
@@ -1490,8 +1887,19 @@
                                     วิชาที่สอบ
                                 </p>
                                 <div className="font-black text-blue-600 text-2xl bg-blue-50 py-5 px-8 rounded-3xl inline-block border-2 border-blue-100 shadow-inner leading-snug">
-                                    {selectedExamPreview?.title || 'รออาจารย์เริ่มการสอบ...'}
+                                    {currentSubject?.title || 'รออาจารย์เริ่มการสอบ...'}
                                 </div>
+                                
+                                {currentExamSet && (
+                                    <>
+                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-4 mb-2">
+                                            ชุดข้อสอบ
+                                        </p>
+                                        <div className="font-black text-purple-600 text-lg bg-purple-50 py-3 px-6 rounded-2xl inline-block border-2 border-purple-100">
+                                            {currentExamSet.title}
+                                        </div>
+                                    </>
+                                )}
                                 
                                 <p className="mt-12 text-sm text-slate-400 italic font-black uppercase tracking-tighter">
                                     กรุณาอย่ารีเฟรชหน้าจอ ระบบจะพาท่านเข้าสอบโดยอัตโนมัติ
@@ -1501,7 +1909,7 @@
                     )}
 
                     {/* Instructions */}
-                    {step === 'instructions' && currentExam && (
+                    {step === 'instructions' && currentExamSet && currentSubject && (
                         <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
                             <div className="glass-card p-12 rounded-[3.5rem] w-full max-w-lg shadow-2xl border-white border-2">
                                 <div className="flex flex-col sm:flex-row items-center gap-5 mb-10">
@@ -1513,7 +1921,7 @@
                                             กฎการสอบ
                                         </h2>
                                         <p className="text-sm text-slate-400 font-black uppercase tracking-widest mt-2">
-                                            {currentExam.title}
+                                            {currentSubject.title} - {currentExamSet.title}
                                         </p>
                                     </div>
                                 </div>
@@ -1529,7 +1937,7 @@
                                     </div>
                                     <div className="flex gap-5 items-center p-6 bg-blue-50 text-blue-700 rounded-3xl border-2 border-blue-100 font-black shadow-sm">
                                         <Clock size={24} className="shrink-0"/> 
-                                        เวลาสอบ: {currentExam.timeLimit / 60} นาที
+                                        เวลาสอบ: {currentExamSet.timeLimit / 60} นาที
                                     </div>
                                 </div>
                                 
@@ -1544,7 +1952,7 @@
                     )}
 
                     {/* Exam */}
-                    {step === 'exam' && currentExam && (
+                    {step === 'exam' && currentExamSet && currentSubject && (
                         <div className="min-h-screen bg-slate-100 pb-32 animate-fade-in">
                             {/* Watermark */}
                             <Watermark text={`${student?.id} - ${student?.name}`} />
@@ -1554,14 +1962,15 @@
                                 <div className="px-8 py-5 flex justify-between items-center">
                                     <div className="flex items-center gap-4">
                                         <img src={LOGO_URL} alt="Logo" className="w-10 h-10 hidden sm:block" />
-                                        <div className="font-black truncate text-xl tracking-tight">
-                                            {currentExam.title}
+                                        <div>
+                                            <div className="font-black text-sm text-slate-500">{currentSubject.title}</div>
+                                            <div className="font-black text-lg tracking-tight">{currentExamSet.title}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <button 
                                             onClick={() => {
-                                                if(confirm(`ยืนยันส่งกระดาษคำตอบ?\nคุณตอบไปแล้ว ${currentExam.questions.filter(q => answers[q.id] !== undefined).length} จาก ${currentExam.questions.length} ข้อ`)) 
+                                                if(confirm(`ยืนยันส่งกระดาษคำตอบ?\nคุณตอบไปแล้ว ${currentExamSet.questions.filter(q => answers[q.id] !== undefined).length} จาก ${currentExamSet.questions.length} ข้อ`)) 
                                                     submitExam('Manual Submit');
                                             }} 
                                             className="hidden md:flex px-4 py-2 bg-red-600 text-white rounded-xl font-black text-xs uppercase items-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-sm"
@@ -1582,7 +1991,7 @@
                                 </div>
                                 <div className="bg-blue-50 px-8 py-1.5 flex justify-between items-center border-b border-blue-100">
                                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">ความคืบหน้า: {progress}%</span>
-                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">ตอบแล้ว: {currentExam.questions.filter(q => answers[q.id] !== undefined).length} / {currentExam.questions.length}</span>
+                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">ตอบแล้ว: {currentExamSet.questions.filter(q => answers[q.id] !== undefined).length} / {currentExamSet.questions.length}</span>
                                 </div>
                             </div>
 
@@ -1593,7 +2002,7 @@
                                         <List size={14}/> แผนที่ข้อสอบ
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {currentExam.questions.map((q, idx) => (
+                                        {currentExamSet.questions.map((q, idx) => (
                                             <button 
                                                 key={idx} 
                                                 onClick={() => setCurrentQIdx(idx)} 
@@ -1617,32 +2026,32 @@
                                         # {currentQIdx + 1}
                                     </div>
                                     
-                                    {currentExam.questions[currentQIdx].passage && currentExam.questions[currentQIdx].passagePosition !== 'bottom' && (
+                                    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition !== 'bottom' && (
                                         <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-10 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-wrap font-black text-lg">
                                             <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
-                                            {currentExam.questions[currentQIdx].passage}
+                                            {currentExamSet.questions[currentQIdx].passage}
                                         </div>
                                     )}
                                     
                                     <div className="relative mb-12">
                                         <h3 className="text-3xl font-black text-slate-800 leading-tight tracking-tight">
-                                            {currentExam.questions[currentQIdx].text}
+                                            {currentExamSet.questions[currentQIdx].text}
                                         </h3>
                                     </div>
                                     
-                                    {currentExam.questions[currentQIdx].passage && currentExam.questions[currentQIdx].passagePosition === 'bottom' && (
+                                    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition === 'bottom' && (
                                         <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-12 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-wrap font-black text-lg">
                                             <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
-                                            {currentExam.questions[currentQIdx].passage}
+                                            {currentExamSet.questions[currentQIdx].passage}
                                         </div>
                                     )}
                                     
                                     <div className="grid gap-5">
-                                        {currentExam.questions[currentQIdx].options.map((opt, i) => (
+                                        {currentExamSet.questions[currentQIdx].options.map((opt, i) => (
                                             <label 
                                                 key={i} 
                                                 className={`flex items-center p-8 border-2 rounded-[2.5rem] cursor-pointer transition-all active:scale-[0.98] group ${
-                                                    answers[currentExam.questions[currentQIdx].id] === i 
+                                                    answers[currentExamSet.questions[currentQIdx].id] === i 
                                                         ? 'bg-blue-600 border-blue-600 text-white shadow-2xl ring-8 ring-blue-100 font-bold'
                                                         : 'bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-blue-100 hover:shadow-lg'
                                                 }`}
@@ -1650,20 +2059,20 @@
                                                 <input 
                                                     type="radio" 
                                                     className="hidden" 
-                                                    checked={answers[currentExam.questions[currentQIdx].id] === i}
+                                                    checked={answers[currentExamSet.questions[currentQIdx].id] === i}
                                                     onChange={() => {
                                                         setAnswers({
                                                             ...answers, 
-                                                            [currentExam.questions[currentQIdx].id]: i
+                                                            [currentExamSet.questions[currentQIdx].id]: i
                                                         });
                                                         answersRef.current = {
                                                             ...answersRef.current,
-                                                            [currentExam.questions[currentQIdx].id]: i
+                                                            [currentExamSet.questions[currentQIdx].id]: i
                                                         };
                                                     }}
                                                 />
                                                 <div className={`w-12 h-12 rounded-2xl border-2 mr-6 flex items-center justify-center font-black text-xl transition-all ${
-                                                    answers[currentExam.questions[currentQIdx].id] === i
+                                                    answers[currentExamSet.questions[currentQIdx].id] === i
                                                         ? 'bg-white text-blue-600 border-white'
                                                         : 'bg-white text-slate-300 border-slate-200'
                                                 }`}>
@@ -1686,10 +2095,10 @@
                                     </button>
                                     
                                     <div className="text-slate-400 font-black text-sm hidden sm:block uppercase tracking-tighter">
-                                        ข้อที่ {currentQIdx + 1} / {currentExam.questions.length}
+                                        ข้อที่ {currentQIdx + 1} / {currentExamSet.questions.length}
                                     </div>
                                     
-                                    {currentQIdx < currentExam.questions.length - 1 ? (
+                                    {currentQIdx < currentExamSet.questions.length - 1 ? (
                                         <button 
                                             onClick={() => setCurrentQIdx(p => p + 1)} 
                                             className="px-10 py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg hover:bg-black transition-all active:scale-95 uppercase"
@@ -1742,7 +2151,7 @@
                                 <div className="p-8 overflow-y-auto flex-1">
                                     {adminTab === 'dashboard' && (
                                         <div className="space-y-10">
-                                            {/* Dashboard content - same as before */}
+                                            {/* Control Panel */}
                                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                                                 <div className="lg:col-span-8 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl space-y-8">
                                                     <h3 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-3">
@@ -1751,19 +2160,42 @@
                                                     
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                         <div>
+    <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
+        เลือกวิชา
+    </label>
+    <div className="relative">
+        <select 
+            value={systemConfig.activeSubjectId || ''} 
+            onChange={e => handleChangeSubject(e.target.value)} 
+            className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+        >
+            <option value="">-- เลือกวิชา --</option>
+            {subjects.map(subject => (
+                <option key={subject.id} value={subject.id}>
+                    {subject.id} - {subject.title}
+                </option>
+            ))}
+        </select>
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <ChevronDown size={24}/>
+        </div>
+    </div>
+</div>
+                                                        <div>
                                                             <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
-                                                                วิชาที่จะเปิด
+                                                                เลือกชุดข้อสอบ
                                                             </label>
                                                             <div className="relative">
                                                                 <select 
-                                                                    value={systemConfig.activeExamId} 
-                                                                    onChange={e => handleChangeExamSubject(e.target.value)} 
+                                                                    value={systemConfig.activeExamSetId || ''} 
+                                                                    onChange={e => handleChangeExamSet(e.target.value)} 
                                                                     className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+                                                                    disabled={!systemConfig.activeSubjectId}
                                                                 >
-                                                                    <option value="">เลือกวิชา</option>
-                                                                    {exams.map(e => (
-                                                                        <option key={e.id} value={e.id}>
-                                                                            {e.id} | {e.title}
+                                                                    <option value="">-- เลือกชุดข้อสอบ --</option>
+                                                                    {currentSubjectExams.map(set => (
+                                                                        <option key={set.setId} value={set.setId}>
+                                                                            ชุดที่ {set.setId}: {set.title}
                                                                         </option>
                                                                     ))}
                                                                 </select>
@@ -1796,7 +2228,7 @@
                                                             </div>
                                                         </div>
                                                         
-                                                        <div className="md:col-span-2">
+                                                        <div>
                                                             <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
                                                                 เวลาสอบ (นาที)
                                                             </label>
@@ -1832,7 +2264,7 @@
                                                         </div>
                                                     ) : (
                                                         <div className="bg-white border-4 border-dashed border-slate-100 p-16 rounded-[3.5rem] text-center text-slate-400 font-black">
-                                                            กรุณาเลือกวิชา
+                                                            กรุณาเลือกวิชาและชุดข้อสอบ
                                                         </div>
                                                     )}
                                                 </div>
