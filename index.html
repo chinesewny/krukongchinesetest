@@ -35,6 +35,26 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                /* เพิ่ม CSS สำหรับจัดการการแสดงผล */
+        .whitespace-pre-line {
+            white-space: pre-line;
+        }
+        .option-letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            background-color: #f1f5f9;
+            color: #64748b;
+            font-weight: 700;
+            margin-right: 1rem;
+        }
+        .option-letter.selected {
+            background-color: #2563eb;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen text-slate-800 notranslate" translate="no">
@@ -64,7 +84,7 @@
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
         const LOGO_URL = "https://img2.pic.in.th/pic/Logoc404dc85753b800c.png";
 
-                // --- 1. Global Utilities ---
+        // --- 1. Global Utilities ---
         const shuffleArray = (array) => {
             if (!array || !Array.isArray(array)) return [];
             const newArray = [...array];
@@ -75,15 +95,14 @@
             return newArray;
         };
 
-        // เพิ่มฟังก์ชันสำหรับจัดรูปแบบข้อความที่นำเข้า
         const formatImportedQuestions = (questions) => {
     return questions.map(q => {
-        // ลบช่องว่างส่วนเกิน
+        // ลบช่องว่างส่วนเกินอย่างเดียว ไม่ต้องตัดพินอิน
         const formatted = {
             ...q,
-            text: q.text.replace(/\s+/g, ' ').trim(),
-            options: q.options.map(opt => opt.replace(/\s+/g, ' ').trim()),
-            passage: q.passage ? q.passage.replace(/\s+/g, ' ').trim() : ''
+            text: q.text, // เก็บตามเดิม
+            options: q.options.map(opt => opt), // เก็บตามเดิม
+            passage: q.passage ? q.passage : ''
         };
         
         // เรียงตัวเลือกใหม่ให้สวยงาม (ให้มีครบ 4 ตัวเลือก)
@@ -96,7 +115,6 @@
         return formatted;
     });
 };
-        // เพิ่มฟังก์ชันแสดงตัวอย่างรูปแบบไฟล์
         const showFileFormatExample = () => {
             const example = `ตัวอย่างรูปแบบไฟล์ที่รองรับ:
 
@@ -239,54 +257,66 @@ d. option d
         };
 
         // --- 4. Modals ---
-        const ViewExamModal = ({ exam, examSet, onClose }) => {
-            if (!exam) return null;
-            return (
-                <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
-                    <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-in relative" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                            <div>
-                                <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={24} className="text-blue-600"/> ตรวจสอบข้อสอบ</h3>
-                                <p className="text-sm text-slate-500 mt-1">
-                                    {exam.id} - {exam.title} 
-                                    {examSet && <span className="ml-2 text-blue-600">(ชุดที่ {examSet.setId})</span>}
-                                </p>
-                            </div>
-                            <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors"><XCircle size={24}/></button>
-                        </div>
-                        <div className="p-6 overflow-y-auto space-y-8">
-                            {exam.questions?.map((q, idx) => (
-                                <div key={idx} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                                    {q.sectionTitle && (
-                                        <div className="bg-blue-600 text-white p-3 rounded-lg font-bold mb-3 flex items-center gap-2">
-                                            <Layout size={18}/> {q.sectionTitle}
-                                        </div>
-                                    )}
-                                    {q.passage && (
-                                        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 text-sm italic">
-                                            <BookOpen size={14} className="inline mr-2 text-amber-600"/>{q.passage}
-                                        </div>
-                                    )}
-                                    <p className="font-bold text-lg mb-4">{idx + 1}. {q.text}</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {q.options.map((opt, oIdx) => (
-                                            <div key={oIdx} className={`p-3 rounded-xl border flex items-center gap-3 ${oIdx === q.correct ? 'bg-green-100 border-green-300 text-green-800 font-bold':'bg-white text-slate-600 border-slate-200'}`}>
-                                                <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-xs font-bold">{String.fromCharCode(3601 + oIdx)}</span>
-                                                <span>{opt}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="p-4 border-t bg-slate-50 text-right">
-                            <button onClick={onClose} className="px-8 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900">ปิด</button>
-                        </div>
+const ViewExamModal = ({ exam, examSet, onClose }) => {
+    if (!exam) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[9998] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-in relative" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                    <div>
+                        <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={24} className="text-blue-600"/> ตรวจสอบข้อสอบ</h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                            {exam.id} - {exam.title} 
+                            {examSet && <span className="ml-2 text-blue-600">(ชุดที่ {examSet.setId})</span>}
+                        </p>
                     </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors"><XCircle size={24}/></button>
                 </div>
-            );
-        };
-
+                <div className="p-6 overflow-y-auto space-y-8">
+                    {exam.questions?.map((q, idx) => (
+                        <div key={idx} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            {q.sectionTitle && (
+                                <div className="bg-blue-600 text-white p-3 rounded-lg font-bold mb-3 flex items-center gap-2">
+                                    <Layout size={18}/> {q.sectionTitle}
+                                </div>
+                            )}
+                            {q.passage && (
+                                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 text-sm italic whitespace-pre-line">
+                                    <BookOpen size={14} className="inline mr-2 text-amber-600"/>{q.passage}
+                                </div>
+                            )}
+                            <p className="font-bold text-lg mb-4 whitespace-pre-line">{idx + 1}. {q.text}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {q.options.map((opt, oIdx) => {
+                                    // ดึงเฉพาะตัวอักษรนำหน้า (A, B, C, D) และข้อความ
+                                    let optionLetter = String.fromCharCode(65 + oIdx); // A, B, C, D
+                                    let optionText = opt;
+                                    
+                                    // ถ้าตัวเลือกมีรูปแบบ A. ข้อความ ให้แยก
+                                    const optionMatch = opt.match(/^([A-D])\.\s*(.+)/);
+                                    if (optionMatch) {
+                                        optionLetter = optionMatch[1];
+                                        optionText = optionMatch[2];
+                                    }
+                                    
+                                    return (
+                                        <div key={oIdx} className={`p-3 rounded-xl border flex items-center gap-3 ${oIdx === q.correct ? 'bg-green-100 border-green-300 text-green-800 font-bold' : 'bg-white text-slate-600 border-slate-200'}`}>
+                                            <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-xs font-bold">{optionLetter}</span>
+                                            <span className="whitespace-pre-line">{optionText}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="p-4 border-t bg-slate-50 text-right">
+                    <button onClick={onClose} className="px-8 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900">ปิด</button>
+                </div>
+            </div>
+        </div>
+    );
+};
         const EditExamModal = ({ exam, examSet, onClose, onSave }) => {
             const [data, setData] = useState({ 
                 title: exam.title, 
@@ -466,8 +496,8 @@ d. option d
             const [student, setStudent] = useState(null);
             const [studentIdInput, setStudentIdInput] = useState('');
             const [adminPassword, setAdminPassword] = useState('');
-            const [subjects, setSubjects] = useState([]); // [{ id, title }]
-            const [examSets, setExamSets] = useState({}); // { subjectId: [{ setId, title, timeLimit, questions }] }
+            const [subjects, setSubjects] = useState([]);
+            const [examSets, setExamSets] = useState({});
             const [currentSubject, setCurrentSubject] = useState(null);
             const [currentExamSet, setCurrentExamSet] = useState(null);
             const [adminTab, setAdminTab] = useState('dashboard');
@@ -503,7 +533,6 @@ d. option d
             const [newAdminPassword, setNewAdminPassword] = useState('');
             const [adminGlobalPassword, setAdminGlobalPassword] = useState('admin1234');
             
-            // State สำหรับสร้างข้อสอบ
             const [newSubject, setNewSubject] = useState({ id: '', title: '' });
             const [newExamSet, setNewExamSet] = useState({ 
                 setId: 1, 
@@ -527,18 +556,15 @@ d. option d
             const timerRef = useRef(null);
             const unsubscribers = useRef([]);
 
-            // --- Toast Helper ---
             const showToast = useCallback((message, type = 'success') => {
                 setToast({ show: true, message, type });
             }, []);
 
-            // --- Cleanup Function ---
             const cleanupListeners = () => {
                 unsubscribers.current.forEach(unsub => unsub?.());
                 unsubscribers.current = [];
             };
 
-            // --- Derived Data ---
             const availableClassrooms = useMemo(() => {
                 if (!dashboardData || !Array.isArray(dashboardData)) return [];
                 return Array.from(new Set(dashboardData.map(d => String(d.classroom || '').trim())))
@@ -551,68 +577,66 @@ d. option d
                 return examSets[systemConfig.activeSubjectId] || [];
             }, [examSets, systemConfig.activeSubjectId]);
 
-            const selectedExamPreview = useMemo(() => {
-                if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) return null;
-                const sets = examSets[systemConfig.activeSubjectId] || [];
-                return sets.find(s => s.setId === systemConfig.activeExamSetId);
-            }, [examSets, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
+           const selectedExamPreview = useMemo(() => {
+    if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) return null;
+    const sets = examSets[systemConfig.activeSubjectId] || [];
+    // ใช้ == เพื่อให้ String "1" เท่ากับ Number 1 ได้
+    return sets.find(s => s.setId == systemConfig.activeExamSetId);
+}, [examSets, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
 
             const progress = useMemo(() => {
                 if (!currentExamSet || !currentExamSet.questions) return 0;
                 const answeredCount = currentExamSet.questions.filter(q => answers[q.id] !== undefined).length;
                 return Math.round((answeredCount / currentExamSet.questions.length) * 100);
             }, [answers, currentExamSet]);
-            // --- Database Methods ---
+
             const fetchAllData = async () => {
-                setLoading(true);
-                try {
-                    // Fetch subjects
-                    const subjectsSnap = await window.fb.getDocs(window.fb.collection(window.db, "subjects"));
-                    const subjectsData = subjectsSnap.docs.map(d => ({ 
-                        id: d.id, 
-                        ...d.data() 
-                    }));
-                    console.log('Subjects loaded:', subjectsData);
-                    setSubjects(subjectsData);
-                    
-                    // Fetch all exam sets
-                    const examSetsData = {};
-                    for (const subject of subjectsData) {
-                        const setsSnap = await window.fb.getDocs(
-                            window.fb.collection(window.db, "subjects", subject.id, "examSets")
-                        );
-                        examSetsData[subject.id] = setsSnap.docs.map(d => ({ 
-                            setId: parseInt(d.id), 
-                            ...d.data() 
-                        })).sort((a, b) => a.setId - b.setId);
-                        
-                        console.log(`Exam sets for ${subject.id}:`, examSetsData[subject.id]);
-                    }
-                    setExamSets(examSetsData);
-                    
-                    // ตรวจสอบว่า activeSubjectId ยังมีอยู่ใน subjects หรือไม่
-                    if (systemConfig.activeSubjectId) {
-                        const subjectExists = subjectsData.some(s => s.id === systemConfig.activeSubjectId);
-                        if (!subjectExists) {
-                            // ถ้าไม่มีให้รีเซ็ตค่า
-                            await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
-                                activeSubjectId: '',
-                                activeExamSetId: 1
-                            });
-                        }
-                    }
-                    
-                    setLoading(false);
-                    return { subjects: subjectsData, examSets: examSetsData };
-                } catch (err) { 
-                    console.error('Error fetching data:', err);
-                    setLoading(false);
-                    showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, 'error');
-                    return { subjects: [], examSets: {} };
-                }
-            };
-            // --- Database Methods ---
+    setLoading(true);
+    try {
+        const subjectsSnap = await window.fb.getDocs(window.fb.collection(window.db, "subjects"));
+        const subjectsData = subjectsSnap.docs.map(d => ({ 
+            id: d.id, 
+            ...d.data() 
+        }));
+        console.log('Subjects loaded:', subjectsData);
+        setSubjects(subjectsData);
+        
+        const examSetsData = {};
+        for (const subject of subjectsData) {
+            const setsSnap = await window.fb.getDocs(
+                window.fb.collection(window.db, "subjects", subject.id, "examSets")
+            );
+            examSetsData[subject.id] = setsSnap.docs.map(d => ({ 
+                setId: parseInt(d.id), 
+                ...d.data() 
+            })).sort((a, b) => a.setId - b.setId);
             
+            console.log(`Exam sets for ${subject.id}:`, examSetsData[subject.id]);
+        }
+        setExamSets(examSetsData);
+        
+        // ตรวจสอบว่า activeSubjectId ยังมีอยู่ใน subjects หรือไม่
+        if (systemConfig.activeSubjectId) {
+            const subjectExists = subjectsData.some(s => s.id === systemConfig.activeSubjectId);
+            if (!subjectExists) {
+                console.log('Active subject no longer exists, resetting...');
+                await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
+                    activeSubjectId: '',
+                    activeExamSetId: 1
+                });
+            }
+        }
+        
+        setLoading(false);
+        return { subjects: subjectsData, examSets: examSetsData };
+    } catch (err) { 
+        console.error('Error fetching data:', err);
+        setLoading(false);
+        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, 'error');
+        return { subjects: [], examSets: {} };
+    }
+};
+
             const exportToCSV = useCallback(() => {
                 const filterRoom = monitorFilterRoom;
                 const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom).trim() === filterRoom.trim());
@@ -650,24 +674,63 @@ d. option d
                 showToast('ส่งออกรายงานสำเร็จ');
             }, [dashboardData, monitorFilterRoom, systemConfig.activeSubjectId, systemConfig.activeExamSetId, selectedExamPreview, subjects, showToast]);
 
-            const handleToggleExam = async (isOpen) => {
-                setLoading(true);
-                setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
-                
-                try {
-                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
-                        isOpen, 
-                        customTimeLimit: parseInt(adminTimeLimitInput) * 60, 
-                        activeClassroom: adminClassroomInput,
-                        examOpenedAt: isOpen ? new Date().toLocaleString('th-TH') : '', 
-                        examStartMs: isOpen ? Date.now() : 0
-                    });
-                    showToast(`ระบบสอบ ${isOpen ? 'เปิด' : 'ปิด'} เรียบร้อย`);
-                } catch (err) { 
-                    showToast(err.message, 'error');
+const handleToggleExam = async (isOpen) => {
+    // 1. ตรวจสอบความพร้อมเบื้องต้น
+    if (isOpen) {
+        if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) {
+            showToast('กรุณาเลือกวิชาและชุดข้อสอบให้ครบถ้วนก่อนเปิดสอบ', 'error');
+            return;
+        }
+        const timeLimit = parseInt(adminTimeLimitInput);
+        if (isNaN(timeLimit) || timeLimit <= 0) {
+            showToast('กรุณาระบุเวลาสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+            return;
+        }
+    }
+
+    setLoading(true);
+    setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
+    
+    try {
+        // 2. กรณีปิดสอบ: ตรวจสอบนักเรียนที่ยังสอบไม่เสร็จ
+        if (!isOpen && systemConfig.activeSubjectId) {
+            const submissionsQuery = window.fb.query(
+                window.fb.collection(window.db, "submissions"),
+                window.fb.where("subjectId", "==", systemConfig.activeSubjectId),
+                window.fb.where("examSetId", "==", Number(systemConfig.activeExamSetId)), // บังคับเป็น Number
+                window.fb.where("status", "==", "IN_PROGRESS")
+            );
+            const submissionsSnap = await window.fb.getDocs(submissionsQuery);
+            if (!submissionsSnap.empty) {
+                if (!confirm(`มีนักเรียน ${submissionsSnap.size} คนกำลังสอบอยู่\nยืนยันที่จะปิดระบบและตัดสิทธิ์การสอบหรือไม่?`)) {
+                    setLoading(false);
+                    return;
                 }
-                setLoading(false);
-            };
+            }
+        }
+        
+        // 3. เตรียมข้อมูลที่จะบันทึก (ป้องกันค่าเสียหาย)
+        const updateData = {
+            isOpen: !!isOpen, 
+            customTimeLimit: (parseInt(adminTimeLimitInput) || 60) * 60, 
+            activeClassroom: adminClassroomInput || 'All',
+            examOpenedAt: isOpen ? new Date().toLocaleString('th-TH') : '', 
+            examStartMs: isOpen ? Date.now() : 0
+        };
+
+        // 4. บันทึกลง Firestore
+        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
+        
+        // 5. อัปเดต Local State ทันทีเพื่อให้ปุ่มเปลี่ยนสีทันใจ
+        setSystemConfig(prev => ({ ...prev, ...updateData }));
+        
+        showToast(`ระบบสอบ ${isOpen ? 'เปิด' : 'ปิด'} เรียบร้อยแล้ว`);
+    } catch (err) { 
+        console.error("Toggle Error:", err);
+        showToast('ไม่สามารถเปลี่ยนสถานะได้: ' + err.message, 'error');
+    }
+    setLoading(false);
+};
 
             const handleChangeAdminPassword = async () => {
                 if (!newAdminPassword || newAdminPassword.length < 4) {
@@ -701,51 +764,76 @@ d. option d
                 }
                 setLoading(false);
             };
-
-            const handleChangeSubject = async (subjectId) => {
+const handleChangeSubject = async (subjectId) => {
+    if (!subjectId) return;
+    
     setLoading(true);
+    setLoadingMessage('กำลังสลับวิชา...');
+    
     try {
-        // อัปเดตค่าใน Firestore
+        // 1. ดึงชุดข้อสอบที่มีของวิชานี้
+        const sets = examSets[subjectId] || [];
+        
+        // 2. กำหนดค่าเริ่มต้น (ถ้ามีชุดข้อสอบให้ใช้ชุดที่ 1 ถ้าไม่มีให้กันไว้ก่อนเป็น 1)
+        const firstSet = sets.length > 0 ? sets[0] : { setId: 1, timeLimit: 3600 };
+        const targetSetId = Number(firstSet.setId); // บังคับเป็น Number
+        const targetTime = Number(firstSet.timeLimit / 60);
+
+        // 3. บันทึกลง Firestore
         await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
             activeSubjectId: subjectId,
-            activeExamSetId: 1 
+            activeExamSetId: targetSetId 
         });
         
-        // อัปเดตเวลาเริ่มต้นจากชุดข้อสอบแรก
-        const sets = examSets[subjectId] || [];
-        if (sets.length > 0) {
-            setAdminTimeLimitInput(sets[0].timeLimit / 60);
+        // 4. บังคับอัปเดต State ทันทีเพื่อให้ Dropdown เปลี่ยนค่า
+        setSystemConfig(prev => ({ 
+            ...prev, 
+            activeSubjectId: subjectId, 
+            activeExamSetId: targetSetId 
+        }));
+        
+        setAdminTimeLimitInput(targetTime);
+        showToast(`สลับเป็นวิชา ${subjectId} เรียบร้อย`);
+    } catch (err) {
+        console.error('Error changing subject:', err);
+        showToast('ไม่สามารถเปลี่ยนวิชาได้: ' + err.message, 'error');
+    }
+    setLoading(false);
+};
+
+const handleChangeExamSet = async (setId) => {
+    if (!setId) {
+        showToast('กรุณาเลือกชุดข้อสอบ', 'error');
+        return;
+    }
+    
+    const setIdNum = parseInt(setId);
+    setLoading(true);
+    setLoadingMessage('กำลังเปลี่ยนชุดข้อสอบ...');
+    
+    try {
+        console.log('Changing exam set to:', setIdNum);
+        
+        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
+            activeExamSetId: setIdNum 
+        });
+        
+        // อัปเดตเวลาจากชุดข้อสอบที่เลือก
+        const sets = examSets[systemConfig.activeSubjectId] || [];
+        const selectedSet = sets.find(s => s.setId === setIdNum);
+        if (selectedSet) {
+            setAdminTimeLimitInput(selectedSet.timeLimit / 60);
         }
         
-        showToast('เปลี่ยนวิชาเรียบร้อย');
+        showToast('เปลี่ยนชุดข้อสอบเรียบร้อย');
     } catch (err) {
+        console.error('Error changing exam set:', err);
         showToast(err.message, 'error');
     }
     setLoading(false);
 };
-            const handleChangeExamSet = async (setId) => {
-                const setIdNum = parseInt(setId);
-                setLoading(true);
-                try {
-                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
-                        activeExamSetId: setIdNum 
-                    });
-                    
-                    // อัปเดตเวลาจากชุดข้อสอบที่เลือก
-                    const sets = examSets[systemConfig.activeSubjectId] || [];
-                    const selectedSet = sets.find(s => s.setId === setIdNum);
-                    if (selectedSet) {
-                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
-                    }
-                    
-                    showToast('เปลี่ยนชุดข้อสอบเรียบร้อย');
-                } catch (err) {
-                    showToast(err.message, 'error');
-                }
-                setLoading(false);
-            };
 
-            const handleFileSelect = async (e) => {
+const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
@@ -756,38 +844,51 @@ d. option d
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         
-        // แยกบรรทัดและกรองบรรทัดว่าง
-        const lines = result.value.split('\n').filter(line => line.trim() !== '');
+        // เก็บบรรทัดไว้ตามเดิม ไม่ตัดช่องว่าง
+        const lines = result.value.split('\n');
         
         const newQuestionsTemp = [];
         let currentQuestion = null;
         let collectingOptions = false;
         let currentOptions = [];
         let correctAnswer = null;
+        let questionTextLines = [];
+        let foundFirstOption = false;
         
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
+            const line = lines[i].replace(/\r$/, ''); // ลบ carriage return
+            const trimmedLine = line.trim();
+            
+            // ข้ามบรรทัดว่างแต่เก็บไว้เป็นตัวแบ่ง
+            if (trimmedLine === '') {
+                if (collectingOptions && !foundFirstOption) {
+                    questionTextLines.push(''); // เก็บบรรทัดว่างไว้ในคำถาม
+                }
+                continue;
+            }
             
             // ตรวจสอบว่าเป็นข้อใหม่หรือไม่ (ขึ้นต้นด้วยตัวเลขและจุด)
-            if (line.match(/^\d+\./)) {
+            if (trimmedLine.match(/^\d+\./)) {
                 // ถ้ามีคำถามก่อนหน้า ให้บันทึก
-                if (currentQuestion && currentQuestion.text) {
-                    // หาคำตอบที่ถูกต้องจากตัวเลือก
+                if (currentQuestion && questionTextLines.length > 0) {
+                    currentQuestion.text = questionTextLines.join('\n'); // ใช้ \n เพื่อรักษาบรรทัด
+                    
                     if (correctAnswer !== null && currentOptions.length > 0) {
-                        const correctIndex = currentOptions.findIndex(opt => 
-                            opt.startsWith(correctAnswer + '.') || 
-                            opt.match(new RegExp('^' + correctAnswer + '\\.'))
-                        );
+                        let correctIndex = -1;
+                        const answerLetter = correctAnswer.toUpperCase();
+                        
+                        if (answerLetter === 'A') correctIndex = 0;
+                        else if (answerLetter === 'B') correctIndex = 1;
+                        else if (answerLetter === 'C') correctIndex = 2;
+                        else if (answerLetter === 'D') correctIndex = 3;
                         
                         if (correctIndex !== -1) {
-                            // สร้างคำถามพร้อมตัวเลือก
                             const questionData = {
                                 id: Date.now() + Math.random() + i,
                                 text: currentQuestion.text,
                                 options: currentOptions.map(opt => {
-                                    // ตัดตัวอักษรนำหน้าออก (A. B. C. D.)
-                                    const optMatch = opt.match(/^[A-D]\.\s*(.+)/);
-                                    return optMatch ? optMatch[1].trim() : opt;
+                                    // เก็บตัวเลือกตามเดิม รวมทั้ง A. B. C. D.
+                                    return opt;
                                 }),
                                 correct: correctIndex,
                                 sectionTitle: '',
@@ -799,47 +900,50 @@ d. option d
                     }
                 }
                 
-                // สร้างคำถามใหม่
-                currentQuestion = {
-                    text: line.replace(/^\d+\./, '').trim()
-                };
+                // เริ่มคำถามใหม่
+                questionTextLines = [line]; // เก็บทั้งบรรทัดรวมทั้งตัวเลขข้อ
+                currentQuestion = { text: '' };
                 collectingOptions = true;
                 currentOptions = [];
                 correctAnswer = null;
+                foundFirstOption = false;
             }
             // ตรวจสอบว่าเป็นตัวเลือก (A. B. C. D.)
-            else if (collectingOptions && line.match(/^[A-D]\./)) {
-                currentOptions.push(line);
+            else if (collectingOptions && trimmedLine.match(/^[A-D]\./)) {
+                foundFirstOption = true;
+                currentOptions.push(line); // เก็บทั้งบรรทัดรวมทั้ง A.
             }
-            // ตรวจสอบว่าเป็นเฉลย (เฉลย: A, เฉลย: B, etc.)
-            else if (line.match(/^เฉลย:\s*([A-D])/i)) {
-                const match = line.match(/^เฉลย:\s*([A-D])/i);
+            // ตรวจสอบว่าเป็นเฉลย (ans: A หรือ เฉลย: A)
+            else if (trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-D])/i)) {
+                const match = trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-D])/i);
                 if (match) {
-                    correctAnswer = match[1];
+                    correctAnswer = match[2];
                 }
             }
-            // ถ้าเจอบรรทัดว่างหรือไม่เกี่ยวข้อง
-            else if (line === '') {
-                // ข้ามไป
+            // ถ้าไม่ใช่ตัวเลือกและไม่ใช่เฉลย แสดงว่าเป็นข้อความคำถามเพิ่มเติม
+            else if (collectingOptions && !foundFirstOption) {
+                questionTextLines.push(line); // เก็บตามเดิม
             }
         }
         
         // เพิ่มคำถามสุดท้าย
-        if (currentQuestion && currentQuestion.text) {
+        if (currentQuestion && questionTextLines.length > 0) {
+            currentQuestion.text = questionTextLines.join('\n');
+            
             if (correctAnswer !== null && currentOptions.length > 0) {
-                const correctIndex = currentOptions.findIndex(opt => 
-                    opt.startsWith(correctAnswer + '.') || 
-                    opt.match(new RegExp('^' + correctAnswer + '\\.'))
-                );
+                let correctIndex = -1;
+                const answerLetter = correctAnswer.toUpperCase();
+                
+                if (answerLetter === 'A') correctIndex = 0;
+                else if (answerLetter === 'B') correctIndex = 1;
+                else if (answerLetter === 'C') correctIndex = 2;
+                else if (answerLetter === 'D') correctIndex = 3;
                 
                 if (correctIndex !== -1) {
                     const questionData = {
                         id: Date.now() + Math.random() + 999,
                         text: currentQuestion.text,
-                        options: currentOptions.map(opt => {
-                            const optMatch = opt.match(/^[A-D]\.\s*(.+)/);
-                            return optMatch ? optMatch[1].trim() : opt;
-                        }),
+                        options: currentOptions.map(opt => opt),
                         correct: correctIndex,
                         sectionTitle: '',
                         passage: '',
@@ -850,30 +954,26 @@ d. option d
             }
         }
         
-        // จัดรูปแบบข้อสอบที่นำเข้า
-        const formattedQuestions = formatImportedQuestions(newQuestionsTemp);
+        // จัดรูปแบบข้อสอบที่นำเข้า (ไม่ต้องแก้ไขข้อความ)
+        const formattedQuestions = newQuestionsTemp;
         
         // แสดงตัวอย่างการนำเข้า
         if (formattedQuestions.length > 0) {
             let previewMessage = `📋 พบข้อสอบทั้งหมด ${formattedQuestions.length} ข้อ\n\n`;
             
-            formattedQuestions.slice(0, 3).forEach((q, idx) => {
-                previewMessage += `ข้อ ${idx + 1}: ${q.text.substring(0, 50)}${q.text.length > 50 ? '...' : ''}\n`;
-                previewMessage += `   ก. ${q.options[0] || ''}\n`;
-                previewMessage += `   ข. ${q.options[1] || ''}\n`;
-                previewMessage += `   ค. ${q.options[2] || ''}\n`;
-                previewMessage += `   ง. ${q.options[3] || ''}\n`;
-                previewMessage += `   ✅ เฉลย: ${String.fromCharCode(3601 + q.correct)}\n\n`;
+            formattedQuestions.slice(0, 1).forEach((q, idx) => {
+                previewMessage += `ข้อ ${idx + 1}:\n${q.text}\n\n`;
+                previewMessage += `ตัวเลือก:\n`;
+                q.options.forEach((opt, optIdx) => {
+                    previewMessage += `   ${opt}\n`;
+                });
+                previewMessage += `   ✅ เฉลย: ${String.fromCharCode(65 + q.correct)}\n\n`;
             });
             
-            if (formattedQuestions.length > 3) {
-                previewMessage += `... และอีก ${formattedQuestions.length - 3} ข้อ\n\n`;
+            if (formattedQuestions.length > 1) {
+                previewMessage += `... และอีก ${formattedQuestions.length - 1} ข้อ\n\n`;
             }
             
-            previewMessage += `✅ ตัวเลือกที่นำเข้าได้: 4 ตัวเลือกต่อข้อ\n`;
-            previewMessage += `⚠️ ตรวจสอบความถูกต้องก่อนบันทึก`;
-            
-            // แสดงตัวอย่างและถามผู้ใช้ว่าต้องการนำเข้าหรือไม่
             if (confirm(previewMessage + '\n\nต้องการนำเข้าข้อสอบทั้งหมดนี้หรือไม่?')) {
                 setNewExamSet(prev => ({
                     ...prev,
@@ -898,8 +998,6 @@ d. option d
     setLoading(false);
     e.target.value = '';
 };
-
-// แก้ไขใน handleFileSelect ก่อน setNewExamSet
 
             const addQuestionToDraft = () => {
                 if (!qDraft.text || !qDraft.text.trim()) {
@@ -948,7 +1046,6 @@ d. option d
                 setLoadingMessage('กำลังบันทึกวิชา...');
                 
                 try {
-                    // ตรวจสอบว่ามีรหัสวิชานี้แล้วหรือไม่
                     const existing = await window.fb.getDoc(window.fb.doc(window.db, "subjects", newSubject.id.trim()));
                     if (existing.exists()) {
                         showToast('รหัสวิชานี้มีอยู่แล้ว', 'error');
@@ -992,7 +1089,6 @@ d. option d
                 setLoadingMessage('กำลังบันทึกชุดข้อสอบ...');
                 
                 try {
-                    // หา setId ล่าสุด
                     const existingSets = examSets[selectedSubjectId] || [];
                     const maxSetId = existingSets.length > 0 ? Math.max(...existingSets.map(s => s.setId)) : 0;
                     const newSetId = maxSetId + 1;
@@ -1099,54 +1195,60 @@ d. option d
                 setLoading(false);
             }, [currentExamSet, currentSubject, student, examStatus, showToast]);
 
-            const handleStudentLogin = async (e) => {
-                e.preventDefault(); 
-                setLoading(true); 
-                setError('');
-                
-                try {
-                    const inputId = studentIdInput.trim();
-                    if (!inputId) {
-                        setError('กรุณากรอกรหัสนักเรียน');
-                        setLoading(false);
-                        return;
-                    }
-                    
-                    const snap = await window.fb.getDoc(window.fb.doc(window.db, "students", inputId));
-                    
-                    if (snap.exists()) {
-                        const sData = { id: snap.id, ...snap.data() };
-                        setStudent(sData);
-                        
-                        const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
-                        const activeSetId = systemConfig.activeExamSetId;
-                        
-                        if (systemConfig.isOpen && activeSubjectId && activeSetId) { 
-                            await fetchAllData();
-                            const sets = examSets[activeSubjectId] || [];
-                            const found = sets.find(s => s.setId === activeSetId);
-                            
-                            if (found) { 
-                                prepareExamFromData(activeSubjectId, activeSetId); 
-                                setStep('instructions');
-                            } else {
-                                setStep('waiting_room');
-                            }
-                        } else {
-                            setStep('waiting_room');
-                        }
-                        
-                        showToast('เข้าสู่ระบบสำเร็จ');
-                    } else {
-                        setError('ไม่พบรหัสนักเรียนในระบบ');
-                    }
-                } catch (err) { 
-                    setError(err.message);
-                    showToast(err.message, 'error');
-                }
-                setLoading(false);
-            };
+          const handleStudentLogin = async (e) => {
+    e.preventDefault(); 
+    setLoading(true); 
+    setError('');
+    
+    try {
+        const inputId = studentIdInput.trim();
+        if (!inputId) {
+            setError('กรุณากรอกรหัสนักเรียน');
+            setLoading(false);
+            return;
+        }
+        
+        const snap = await window.fb.getDoc(window.fb.doc(window.db, "students", inputId));
+        
+        if (snap.exists()) {
+            const sData = { id: snap.id, ...snap.data() };
+            setStudent(sData);
+            
+            const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
+            const activeSetId = systemConfig.activeExamSetId;
 
+            // --- ส่วนที่แก้ไข: ตรวจสอบสิทธิ์ห้องเรียนทันทีที่เข้าสู่ระบบ ---
+            const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
+            const studentRoom = String(sData.classroom || '').trim().toLowerCase();
+            const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
+            
+            // ต้องผ่านเงื่อนไข: ระบบเปิดสอบ + เลือกวิชาแล้ว + ห้องเรียนถูกต้อง
+            if (systemConfig.isOpen && activeSubjectId && activeSetId && isCorrectRoom) { 
+                await fetchAllData();
+                const sets = examSets[activeSubjectId] || [];
+                const found = sets.find(s => s.setId == activeSetId);
+                
+                if (found) { 
+                    prepareExamFromData(activeSubjectId, activeSetId); 
+                    setStep('instructions');
+                } else {
+                    setStep('waiting_room');
+                }
+            } else {
+                // หากไม่ตรงเงื่อนไข (เช่น อยู่คนละห้อง) ให้ส่งไปที่หน้า Waiting Room
+                setStep('waiting_room');
+            }
+            
+            showToast('เข้าสู่ระบบสำเร็จ');
+        } else {
+            setError('ไม่พบรหัสนักเรียนในระบบ');
+        }
+    } catch (err) { 
+        setError(err.message);
+        showToast(err.message, 'error');
+    }
+    setLoading(false);
+};
             const startExam = () => {
                 if (!systemConfig.isOpen) {
                     showToast('ระบบปิดการสอบอยู่', 'error');
@@ -1185,14 +1287,12 @@ d. option d
                         await window.fb.deleteDoc(window.fb.doc(window.db, "students", confirmDelete.subjectId));
                         showToast('ลบข้อมูลนักเรียนเรียบร้อย');
                     } else if (confirmDelete.type === 'subject') {
-                        // ลบ exam sets ทั้งหมดใน subject ก่อน
                         const sets = examSets[confirmDelete.subjectId] || [];
                         for (const set of sets) {
                             await window.fb.deleteDoc(
                                 window.fb.doc(window.db, "subjects", confirmDelete.subjectId, "examSets", set.setId.toString())
                             );
                         }
-                        // ลบ subject
                         await window.fb.deleteDoc(window.fb.doc(window.db, "subjects", confirmDelete.subjectId));
                         showToast('ลบวิชาและชุดข้อสอบเรียบร้อย');
                         await fetchAllData();
@@ -1211,12 +1311,11 @@ d. option d
                 setConfirmDelete({ isOpen: false, type: '', subjectId: null, setId: null });
             };
 
-                        // --- Effects ---
+            // --- Effects ---
             useEffect(() => {
                 const init = async () => {
                     await fetchAllData();
                     
-                    // ตรวจสอบและสร้าง admin config ถ้ายังไม่มี
                     const adminDoc = await window.fb.getDoc(window.fb.doc(window.db, "config", "admin"));
                     if (!adminDoc.exists()) {
                         await window.fb.setDoc(window.fb.doc(window.db, "config", "admin"), { 
@@ -1314,34 +1413,35 @@ d. option d
                 return cleanupListeners;
             }, [step, adminTab, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
 
-            useEffect(() => {
-                const autoRedirect = async () => {
-                    if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeSubjectId || !systemConfig.activeExamSetId || !student) return;
-                    
-                    const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
-                    const studentRoom = String(student.classroom || '').trim().toLowerCase();
-                    const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
-                    
-                    if (isCorrectRoom) {
-                        setLoading(true); 
-                        setLoadingMessage('กำลังเตรียมข้อมูลข้อสอบ...');
-                        
-                        await fetchAllData();
-                        const sets = examSets[systemConfig.activeSubjectId] || [];
-                        const found = sets.find(s => s.setId === systemConfig.activeExamSetId);
-                        
-                        if (found) { 
-                            prepareExamFromData(systemConfig.activeSubjectId, systemConfig.activeExamSetId); 
-                            setStep('instructions');
-                        }
-                        
-                        setLoading(false);
-                    }
-                };
-                
-                autoRedirect();
-            }, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, step, student, prepareExamFromData, examSets]);
-
+useEffect(() => {
+    const autoRedirect = async () => {
+        // ต้องอยู่ในหน้า Waiting Room และระบบเปิดสอบแล้ว
+        if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeSubjectId || !student) return;
+        
+        const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
+        const studentRoom = String(student.classroom || '').trim().toLowerCase();
+        const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
+        
+        // เฉพาะนักเรียนที่ห้องเรียนตรงกับที่ Admin กำหนดเท่านั้นที่จะถูกดึงเข้าสอบ
+        if (isCorrectRoom) {
+            setLoading(true); 
+            setLoadingMessage('กำลังตรวจสอบสิทธิ์ห้องเรียน...');
+            
+            // โหลดข้อมูลล่าสุดเพื่อความมั่นใจ
+            const latestData = await fetchAllData();
+            const sets = latestData.examSets[systemConfig.activeSubjectId] || [];
+            const found = sets.find(s => s.setId == systemConfig.activeExamSetId);
+            
+            if (found) { 
+                prepareExamFromData(systemConfig.activeSubjectId, systemConfig.activeExamSetId); 
+                setStep('instructions');
+            }
+            setLoading(false);
+        }
+    };
+    
+    autoRedirect();
+}, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, step, student]);
             // Anti-Cheat
             useEffect(() => {
                 if (step !== 'exam' || examStatus !== 'active') return;
@@ -1381,10 +1481,8 @@ d. option d
                 };
             }, [step, examStatus, submitExam, showToast]);
 
-            // ✅ ใส่ useEffect สำหรับตรวจสอบการนำเข้าตรงนี้ (ต่อจาก useEffect อื่นๆ)
-            // เพิ่ม useEffect สำหรับตรวจสอบการนำเข้า
+            // ✅ useEffect สำหรับตรวจสอบการนำเข้า
             useEffect(() => {
-                // ถ้ามีการนำเข้าข้อสอบใหม่ และมีจำนวนเพิ่มขึ้น
                 if (newExamSet.questions.length > 0) {
                     const lastQuestion = newExamSet.questions[newExamSet.questions.length - 1];
                     const optionCount = lastQuestion.options.filter(o => o && o.trim() !== '').length;
@@ -1394,18 +1492,76 @@ d. option d
                     }
                 }
             }, [newExamSet.questions]);
-            // เพิ่ม useEffect เพื่อติดตามการเปลี่ยนแปลงของ systemConfig
+            
+            // ✅ useEffect สำหรับติดตามการเปลี่ยนแปลงของ systemConfig
+            useEffect(() => {
+                console.log('systemConfig updated:', systemConfig);
+            }, [systemConfig]);
+            
+            // ✅ useEffect สำหรับโหลดข้อมูลเมื่อเข้าสู่หน้า manage_exams
+            useEffect(() => {
+                if (step === 'admin_dashboard' && adminTab === 'manage_exams') {
+                    fetchAllData();
+                }
+            }, [step, adminTab]);
+
+            // ✅ useEffect สำหรับอัปเดตเวลาเมื่อเปลี่ยนวิชาหรือชุดข้อสอบ
+            useEffect(() => {
+                if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
+                    const sets = examSets[systemConfig.activeSubjectId] || [];
+                    const selectedSet = sets.find(s => s.setId === systemConfig.activeExamSetId);
+                    if (selectedSet) {
+                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+                    }
+                }
+            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
+
+            // ✅ ฟังก์ชันตรวจสอบสถานะการสอบ
+            const checkExamStatus = useCallback(async () => {
+                if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) return;
+                
+                try {
+                    const submissionsQuery = window.fb.query(
+                        window.fb.collection(window.db, "submissions"),
+                        window.fb.where("subjectId", "==", systemConfig.activeSubjectId),
+                        window.fb.where("examSetId", "==", systemConfig.activeExamSetId)
+                    );
+                    
+                    const submissionsSnap = await window.fb.getDocs(submissionsQuery);
+                    
+                    const totalStudents = dashboardData.length;
+                    const completed = submissionsSnap.docs.filter(d => d.data().status === 'COMPLETED').length;
+                    const inProgress = submissionsSnap.docs.filter(d => d.data().status === 'IN_PROGRESS').length;
+                    
+                    console.log(`สถานะการสอบ: นักเรียนทั้งหมด ${totalStudents} คน, สอบเสร็จ ${completed} คน, กำลังสอบ ${inProgress} คน`);
+                } catch (err) {
+                    console.error('Error checking exam status:', err);
+                }
+            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, dashboardData]);
+
+            // ✅ useEffect สำหรับตรวจสอบสถานะเมื่อเปลี่ยนวิชาหรือชุดข้อสอบ
+            useEffect(() => {
+                if (step === 'admin_dashboard' && adminTab === 'dashboard') {
+                    checkExamStatus();
+                }
+            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, adminTab, step, checkExamStatus]);
+// เพิ่ม useEffect สำหรับติดตามการเปลี่ยนแปลงของ systemConfig และโหลดข้อมูลที่เกี่ยวข้อง
+// ค้นหา useEffect ที่มี loadSubjectData แล้วแทนที่ด้วยชุดนี้
 useEffect(() => {
-    console.log('systemConfig updated:', systemConfig);
-    // เมื่อ systemConfig เปลี่ยนแปลง ให้อัปเดตค่าต่างๆ
-    if (systemConfig.activeSubjectId) {
-        // อัปเดตเวลาเริ่มต้นจากชุดข้อสอบแรก
-        const sets = examSets[systemConfig.activeSubjectId] || [];
-        if (sets.length > 0) {
-            setAdminTimeLimitInput(sets[0].timeLimit / 60);
+    const syncTimeLimit = () => {
+        if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
+            const sets = examSets[systemConfig.activeSubjectId] || [];
+            const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
+            
+            if (selectedSet) {
+                // อัปเดตเวลาในช่อง Input ให้ตรงกับชุดข้อสอบที่เลือกในฐานข้อมูล
+                setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+            }
         }
-    }
-}, [systemConfig, examSets]);
+    };
+    syncTimeLimit();
+}, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);          
+            
             // Manage Students Tab
             const renderManageStudents = () => (
                 <div className="space-y-6">
@@ -1468,87 +1624,138 @@ useEffect(() => {
                         <List size={28} className="text-blue-600"/> จัดการวิชาและข้อสอบ
                     </h3>
                     
-                    {/* Subjects List */}
+                    <div className="flex justify-end">
+                        <button 
+                            onClick={() => {
+                                setLoading(true);
+                                fetchAllData().then(() => {
+                                    showToast('รีเฟรชข้อมูลเรียบร้อย');
+                                });
+                            }}
+                            className="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-blue-100 transition-all"
+                        >
+                            <RefreshCw size={18}/> รีเฟรชข้อมูล
+                        </button>
+                    </div>
+                    
                     <div className="space-y-6">
-                        {subjects.map(subject => (
-                            <div key={subject.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
-                                <div className="flex justify-between items-center mb-6">
-                                    <div>
-                                        <h4 className="font-black text-2xl">{subject.title}</h4>
-                                        <p className="text-sm text-slate-400 font-black">รหัสวิชา: {subject.id}</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedSubjectId(subject.id);
-                                                setAdminTab('create_exam');
-                                            }} 
-                                            className="p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"
-                                            title="เพิ่มชุดข้อสอบ"
-                                        >
-                                            <Plus size={20}/>
-                                        </button>
-                                        <button 
-                                            onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', subjectId: subject.id, setId: null })} 
-                                            className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all"
-                                            title="ลบวิชา"
-                                        >
-                                            <Trash size={20}/>
-                                        </button>
-                                    </div>
-                                </div>
+                        {subjects.length > 0 ? (
+                            subjects.map(subject => {
+                                const subjectExamSets = examSets[subject.id] || [];
                                 
-                                {/* Exam Sets */}
-                                <div className="space-y-4">
-                                    <h5 className="font-black text-sm text-slate-400 uppercase tracking-wider">ชุดข้อสอบทั้งหมด</h5>
-                                    {examSets[subject.id]?.length > 0 ? (
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {examSets[subject.id].map(set => (
-                                                <div key={set.setId} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex justify-between items-center">
-                                                    <div>
-                                                        <h6 className="font-black text-lg">ชุดที่ {set.setId}: {set.title}</h6>
-                                                        <div className="flex gap-4 text-xs text-slate-500 font-bold mt-2">
-                                                            <span>จำนวนข้อ: {set.questions?.length || 0} ข้อ</span>
-                                                            <span>เวลา: {set.timeLimit / 60} นาที</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button 
-                                                            onClick={() => {
-                                                                setEditingExam(set);
-                                                                setEditingExamSet({ subjectId: subject.id, setId: set.setId });
-                                                            }} 
-                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
-                                                        >
-                                                            <Edit size={18}/>
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setViewingExam({ ...set, id: subject.id })} 
-                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
-                                                        >
-                                                            <Eye size={18}/>
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', subjectId: subject.id, setId: set.setId })} 
-                                                            className="p-3 bg-white text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
-                                                        >
-                                                            <Trash size={18}/>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                return (
+                                    <div key={subject.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div>
+                                                <h4 className="font-black text-2xl">{subject.title || 'ไม่ระบุชื่อ'}</h4>
+                                                <p className="text-sm text-slate-400 font-black">รหัสวิชา: {subject.id}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedSubjectId(subject.id);
+                                                        setAdminTab('create_exam');
+                                                    }} 
+                                                    className="p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"
+                                                    title="เพิ่มชุดข้อสอบ"
+                                                >
+                                                    <Plus size={20}/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', subjectId: subject.id, setId: null })} 
+                                                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all"
+                                                    title="ลบวิชา"
+                                                >
+                                                    <Trash size={20}/>
+                                                </button>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <p className="text-slate-400 italic">ยังไม่มีชุดข้อสอบ</p>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        
-                        {subjects.length === 0 && (
+                                        
+                                        <div className="space-y-4">
+                                            <h5 className="font-black text-sm text-slate-400 uppercase tracking-wider">
+                                                ชุดข้อสอบทั้งหมด ({subjectExamSets.length})
+                                            </h5>
+                                            
+                                            {subjectExamSets.length > 0 ? (
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {subjectExamSets.map(set => (
+                                                        <div key={set.setId} className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <h6 className="font-black text-lg">
+                                                                        ชุดที่ {set.setId}: {set.title || 'ไม่ระบุชื่อ'}
+                                                                    </h6>
+                                                                    <div className="flex gap-4 text-xs text-slate-500 font-bold mt-2">
+                                                                        <span>📝 จำนวนข้อ: {set.questions?.length || 0} ข้อ</span>
+                                                                        <span>⏱️ เวลา: {set.timeLimit ? set.timeLimit / 60 : 0} นาที</span>
+                                                                    </div>
+                                                                    {set.createdAt && (
+                                                                        <p className="text-xs text-slate-400 mt-1">
+                                                                            สร้างเมื่อ: {new Date(set.createdAt).toLocaleString('th-TH')}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            setEditingExam(set);
+                                                                            setEditingExamSet({ subjectId: subject.id, setId: set.setId });
+                                                                        }} 
+                                                                        className="p-3 bg-white text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                                                        title="แก้ไข"
+                                                                    >
+                                                                        <Edit size={18}/>
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            setViewingExam({ ...set, id: subject.id });
+                                                                            setViewingExamSet({ subjectId: subject.id, setId: set.setId });
+                                                                        }} 
+                                                                        className="p-3 bg-white text-slate-600 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
+                                                                        title="ดูตัวอย่าง"
+                                                                    >
+                                                                        <Eye size={18}/>
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', subjectId: subject.id, setId: set.setId })} 
+                                                                        className="p-3 bg-white text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
+                                                                        title="ลบ"
+                                                                    >
+                                                                        <Trash size={18}/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-8 bg-slate-50 rounded-2xl border-2 border-dashed">
+                                                    <p className="text-slate-400 font-black">ยังไม่มีชุดข้อสอบ</p>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedSubjectId(subject.id);
+                                                            setAdminTab('create_exam');
+                                                        }}
+                                                        className="mt-4 text-blue-600 font-black hover:text-blue-700"
+                                                    >
+                                                        + คลิกเพื่อเพิ่มชุดข้อสอบ
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
                             <div className="text-center p-12 bg-slate-50 rounded-3xl border-2 border-dashed">
-                                <p className="text-slate-400 font-black">ยังไม่มีวิชาในระบบ</p>
+                                <p className="text-slate-400 font-black text-lg">ยังไม่มีวิชาในระบบ</p>
                                 <p className="text-sm text-slate-300 mt-2">ไปที่แท็บ "สร้างข้อสอบ" เพื่อเพิ่มวิชาและชุดข้อสอบ</p>
+                                <button 
+                                    onClick={() => setAdminTab('create_exam')}
+                                    className="mt-6 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 transition-all"
+                                >
+                                    <Plus size={20} className="inline mr-2"/> สร้างวิชาแรก
+                                </button>
                             </div>
                         )}
                     </div>
@@ -1558,7 +1765,6 @@ useEffect(() => {
             // Create Exam Tab
             const renderCreateExam = () => (
                 <div className="space-y-8 max-w-4xl mx-auto">
-                    {/* Create Subject */}
                     <div className="bg-blue-50 p-8 rounded-[2.5rem] border-2 border-blue-100">
                         <h3 className="font-black text-xl mb-6 flex items-center gap-2">
                             <Plus size={24} className="text-blue-600"/> สร้างวิชาใหม่
@@ -1587,7 +1793,6 @@ useEffect(() => {
                         </div>
                     </div>
 
-                    {/* Select Subject for Exam Set */}
                     <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50">
                         <h3 className="font-black text-xl mb-6">เลือกวิชาสำหรับสร้างชุดข้อสอบ</h3>
                         <select 
@@ -1605,33 +1810,31 @@ useEffect(() => {
                         
                         {selectedSubjectId && (
                             <>
-                                {/* Word Import - แก้ไขส่วนนี้ */}
-<div className="bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-100 flex items-center justify-between mb-6">
-    <div className="flex items-center gap-4">
-        <div className="p-3 bg-emerald-600 text-white rounded-2xl">
-            <FileText size={24}/>
-        </div>
-        <div>
-            <h4 className="font-black">นำเข้าจาก Word</h4>
-            <p className="text-xs text-emerald-600">อัปโหลด .docx เพื่อสร้างข้อสอบ</p>
-        </div>
-    </div>
-    <div className="flex gap-2">
-        <button 
-            onClick={showFileFormatExample}
-            className="bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black hover:bg-slate-300 transition-all text-sm flex items-center gap-1"
-            title="ดูตัวอย่างรูปแบบไฟล์"
-        >
-            <Eye size={18}/> ตัวอย่าง
-        </button>
-        <label className="bg-emerald-600 text-white px-6 py-3 rounded-2xl cursor-pointer font-black hover:bg-emerald-700 transition-all flex items-center gap-2">
-            <Upload size={18}/> เลือกไฟล์
-            <input type="file" accept=".docx" onChange={handleFileSelect} className="hidden" />
-        </label>
-    </div>
-</div>
+                                <div className="bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-100 flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-emerald-600 text-white rounded-2xl">
+                                            <FileText size={24}/>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black">นำเข้าจาก Word</h4>
+                                            <p className="text-xs text-emerald-600">อัปโหลด .docx เพื่อสร้างข้อสอบ</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={showFileFormatExample}
+                                            className="bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black hover:bg-slate-300 transition-all text-sm flex items-center gap-1"
+                                            title="ดูตัวอย่างรูปแบบไฟล์"
+                                        >
+                                            <Eye size={18}/> ตัวอย่าง
+                                        </button>
+                                        <label className="bg-emerald-600 text-white px-6 py-3 rounded-2xl cursor-pointer font-black hover:bg-emerald-700 transition-all flex items-center gap-2">
+                                            <Upload size={18}/> เลือกไฟล์
+                                            <input type="file" accept=".docx" onChange={handleFileSelect} className="hidden" />
+                                        </label>
+                                    </div>
+                                </div>
 
-                                {/* Exam Set Info */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <input 
                                         type="text" 
@@ -1650,7 +1853,6 @@ useEffect(() => {
                                     />
                                 </div>
 
-                                {/* Question Builder */}
                                 <div className="bg-slate-50 p-6 rounded-3xl space-y-6">
                                     <h4 className="font-black">สร้างข้อสอบ</h4>
                                     
@@ -1732,7 +1934,6 @@ useEffect(() => {
                                     </button>
                                 </div>
 
-                                {/* Publish Button */}
                                 {newExamSet.questions.length > 0 && (
                                     <button 
                                         onClick={handleCreateExamSet} 
@@ -1914,48 +2115,51 @@ useEffect(() => {
                         </div>
                     )}
 
-                    {/* Waiting Room */}
-                    {step === 'waiting_room' && (
-                        <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
-                            <div className="glass-card p-12 rounded-[3.5rem] w-full max-w-md shadow-2xl relative overflow-hidden text-center border-white border-2">
-                                <div className="absolute top-0 left-0 w-full h-3 bg-blue-100 overflow-hidden">
-                                    <div className="h-full bg-blue-600 animate-[pulse_2s_infinite]"></div>
-                                </div>
-                                
-                                <h2 className="text-4xl font-black mb-10 uppercase tracking-tighter">
-                                    ห้องรอสอบ
-                                </h2>
-                                
-                                <div className="relative inline-block mb-10">
-                                    <div className="w-24 h-24 border-[8px] border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-                                    <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold">⏳</div>
-                                </div>
-                                
-                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-                                    วิชาที่สอบ
-                                </p>
-                                <div className="font-black text-blue-600 text-2xl bg-blue-50 py-5 px-8 rounded-3xl inline-block border-2 border-blue-100 shadow-inner leading-snug">
-                                    {currentSubject?.title || 'รออาจารย์เริ่มการสอบ...'}
-                                </div>
-                                
-                                {currentExamSet && (
-                                    <>
-                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-4 mb-2">
-                                            ชุดข้อสอบ
-                                        </p>
-                                        <div className="font-black text-purple-600 text-lg bg-purple-50 py-3 px-6 rounded-2xl inline-block border-2 border-purple-100">
-                                            {currentExamSet.title}
-                                        </div>
-                                    </>
-                                )}
-                                
-                                <p className="mt-12 text-sm text-slate-400 italic font-black uppercase tracking-tighter">
-                                    กรุณาอย่ารีเฟรชหน้าจอ ระบบจะพาท่านเข้าสอบโดยอัตโนมัติ
-                                </p>
+                    {/* Waiting Room Section */}
+{step === 'waiting_room' && (
+    <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="glass-card p-12 rounded-[3.5rem] w-full max-w-md shadow-2xl text-center border-white border-2">
+            <h2 className="text-4xl font-black mb-10 uppercase">ห้องรอสอบ</h2>
+
+            {(() => {
+                const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
+                const studentRoom = String(student?.classroom || '').trim().toLowerCase();
+                const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
+                
+                // หากระบบเปิดแล้ว แต่ห้องเรียนไม่ตรงกับที่กำหนด
+                if (systemConfig.isOpen && !isCorrectRoom) {
+                    return (
+                        <div className="mb-10 p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] animate-shake">
+                            <div className="text-red-600 font-black text-2xl mb-2">❌ ไม่มีสิทธิ์สอบ</div>
+                            <div className="text-red-400 font-bold">
+                                วิชานี้เปิดให้เฉพาะห้อง <span className="text-red-600 font-black">{systemConfig.activeClassroom}</span> เข้าสอบในขณะนี้
                             </div>
                         </div>
-                    )}
+                    );
+                }
+                
+                // กรณีห้องถูกต้อง หรือระบบยังไม่เปิด
+                return (
+                    <div className="relative inline-block mb-10">
+                        <div className="w-24 h-24 border-[8px] border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                        <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold">⏳</div>
+                    </div>
+                );
+            })()}
 
+            <p className="text-slate-400 text-[10px] font-bold uppercase mb-3">วิชาที่สอบ</p>
+            <div className="font-black text-blue-600 text-2xl bg-blue-50 py-5 px-8 rounded-3xl border-2 border-blue-100 inline-block mb-4">
+                {currentSubject?.title || 'รออาจารย์เลือกวิชา...'}
+            </div>
+            
+            <p className="mt-8 text-sm text-slate-400 italic">
+                {systemConfig.isOpen && (String(systemConfig.activeClassroom).toLowerCase() === 'all' || String(systemConfig.activeClassroom).toLowerCase() === String(student?.classroom).toLowerCase())
+                    ? 'สิทธิ์ถูกต้อง ระบบกำลังพาคุณเข้าสอบ...' 
+                    : 'ระบบจะตรวจสอบห้องเรียนของคุณอัตโนมัติ'}
+            </p>
+        </div>
+    </div>
+)}
                     {/* Instructions */}
                     {step === 'instructions' && currentExamSet && currentSubject && (
                         <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
@@ -2002,10 +2206,8 @@ useEffect(() => {
                     {/* Exam */}
                     {step === 'exam' && currentExamSet && currentSubject && (
                         <div className="min-h-screen bg-slate-100 pb-32 animate-fade-in">
-                            {/* Watermark */}
                             <Watermark text={`${student?.id} - ${student?.name}`} />
                             
-                            {/* Header */}
                             <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b z-20 shadow-md">
                                 <div className="px-8 py-5 flex justify-between items-center">
                                     <div className="flex items-center gap-4">
@@ -2043,7 +2245,6 @@ useEffect(() => {
                                 </div>
                             </div>
 
-                            {/* Question Navigation */}
                             <div className="max-w-5xl mx-auto p-4 md:p-10 space-y-8">
                                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
                                     <div className="flex items-center gap-2 mb-4 text-slate-400 font-black text-[10px] uppercase tracking-widest">
@@ -2069,70 +2270,75 @@ useEffect(() => {
                                 </div>
 
                                 {/* Current Question */}
-                                <div className="bg-white p-10 md:p-16 rounded-[4rem] shadow-2xl relative overflow-hidden border border-white">
-                                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-[12rem] font-black select-none pointer-events-none tracking-tighter leading-none">
-                                        # {currentQIdx + 1}
-                                    </div>
-                                    
-                                    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition !== 'bottom' && (
-                                        <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-10 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-wrap font-black text-lg">
-                                            <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
-                                            {currentExamSet.questions[currentQIdx].passage}
-                                        </div>
-                                    )}
-                                    
-                                    <div className="relative mb-12">
-                                        <h3 className="text-3xl font-black text-slate-800 leading-tight tracking-tight">
-                                            {currentExamSet.questions[currentQIdx].text}
-                                        </h3>
-                                    </div>
-                                    
-                                    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition === 'bottom' && (
-                                        <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-12 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-wrap font-black text-lg">
-                                            <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
-                                            {currentExamSet.questions[currentQIdx].passage}
-                                        </div>
-                                    )}
-                                    
-                                    <div className="grid gap-5">
-                                        {currentExamSet.questions[currentQIdx].options.map((opt, i) => (
-                                            <label 
-                                                key={i} 
-                                                className={`flex items-center p-8 border-2 rounded-[2.5rem] cursor-pointer transition-all active:scale-[0.98] group ${
-                                                    answers[currentExamSet.questions[currentQIdx].id] === i 
-                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-2xl ring-8 ring-blue-100 font-bold'
-                                                        : 'bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-blue-100 hover:shadow-lg'
-                                                }`}
-                                            >
-                                                <input 
-                                                    type="radio" 
-                                                    className="hidden" 
-                                                    checked={answers[currentExamSet.questions[currentQIdx].id] === i}
-                                                    onChange={() => {
-                                                        setAnswers({
-                                                            ...answers, 
-                                                            [currentExamSet.questions[currentQIdx].id]: i
-                                                        });
-                                                        answersRef.current = {
-                                                            ...answersRef.current,
-                                                            [currentExamSet.questions[currentQIdx].id]: i
-                                                        };
-                                                    }}
-                                                />
-                                                <div className={`w-12 h-12 rounded-2xl border-2 mr-6 flex items-center justify-center font-black text-xl transition-all ${
-                                                    answers[currentExamSet.questions[currentQIdx].id] === i
-                                                        ? 'bg-white text-blue-600 border-white'
-                                                        : 'bg-white text-slate-300 border-slate-200'
-                                                }`}>
-                                                    {String.fromCharCode(3601 + i)}
-                                                </div>
-                                                <span className="text-2xl leading-tight font-black">{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Navigation Buttons */}
+<div className="bg-white p-10 md:p-16 rounded-[4rem] shadow-2xl relative overflow-hidden border border-white">
+    <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-[12rem] font-black select-none pointer-events-none tracking-tighter leading-none">
+        # {currentQIdx + 1}
+    </div>
+    
+    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition !== 'bottom' && (
+        <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-10 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-line font-black text-lg">
+            <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
+            {currentExamSet.questions[currentQIdx].passage}
+        </div>
+    )}
+    
+    <div className="relative mb-12">
+        <h3 className="text-3xl font-black text-slate-800 leading-relaxed tracking-tight whitespace-pre-line">
+            {currentExamSet.questions[currentQIdx].text}
+        </h3>
+    </div>
+    
+    {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition === 'bottom' && (
+        <div className="bg-amber-50 border-l-[10px] border-amber-400 p-8 mb-12 rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-line font-black text-lg">
+            <BookOpen size={24} className="inline mr-4 mb-1 text-amber-600"/>
+            {currentExamSet.questions[currentQIdx].passage}
+        </div>
+    )}
+    
+    <div className="grid gap-5">
+        {currentExamSet.questions[currentQIdx].options.map((opt, i) => {
+            // ดึงเฉพาะตัวอักษรนำหน้า (A, B, C, D) และข้อความ
+            const optionMatch = opt.match(/^([A-D])\.\s*(.+)/);
+            const optionLetter = optionMatch ? optionMatch[1] : String.fromCharCode(65 + i);
+            const optionText = optionMatch ? optionMatch[2] : opt;
+            
+            return (
+                <label 
+                    key={i} 
+                    className={`flex items-center p-8 border-2 rounded-[2.5rem] cursor-pointer transition-all active:scale-[0.98] group ${
+                        answers[currentExamSet.questions[currentQIdx].id] === i 
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-2xl ring-8 ring-blue-100 font-bold'
+                            : 'bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-blue-100 hover:shadow-lg'
+                    }`}
+                >
+                    <input 
+                        type="radio" 
+                        className="hidden" 
+                        checked={answers[currentExamSet.questions[currentQIdx].id] === i}
+                        onChange={() => {
+                            setAnswers({
+                                ...answers, 
+                                [currentExamSet.questions[currentQIdx].id]: i
+                            });
+                            answersRef.current = {
+                                ...answersRef.current,
+                                [currentExamSet.questions[currentQIdx].id]: i
+                            };
+                        }}
+                    />
+                    <div className={`w-12 h-12 rounded-2xl border-2 mr-6 flex items-center justify-center font-black text-xl transition-all ${
+                        answers[currentExamSet.questions[currentQIdx].id] === i
+                            ? 'bg-white text-blue-600 border-white'
+                            : 'bg-white text-slate-300 border-slate-200'
+                    }`}>
+                        {optionLetter}
+                    </div>
+                    <span className="text-2xl leading-tight font-black whitespace-pre-line">{optionText}</span>
+                </label>
+            );
+        })}
+    </div>
+</div>
                                 <div className="flex justify-between items-center px-4">
                                     <button 
                                         onClick={() => setCurrentQIdx(p => Math.max(0, p - 1))} 
@@ -2199,7 +2405,6 @@ useEffect(() => {
                                 <div className="p-8 overflow-y-auto flex-1">
                                     {adminTab === 'dashboard' && (
                                         <div className="space-y-10">
-                                            {/* Control Panel */}
                                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                                                 <div className="lg:col-span-8 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl space-y-8">
                                                     <h3 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-3">
@@ -2212,15 +2417,47 @@ useEffect(() => {
         เลือกวิชา
     </label>
     <div className="relative">
+        
+<select 
+    value={systemConfig.activeSubjectId || ''} 
+    onChange={(e) => handleChangeSubject(e.target.value)} 
+    className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+>
+    <option value="" disabled>-- โปรดเลือกวิชา --</option>
+    {subjects.map(subject => (
+        <option key={subject.id} value={subject.id}>
+            {subject.id} - {subject.title}
+        </option>
+    ))}
+</select>
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <ChevronDown size={24}/>
+        </div>
+    </div>
+    {subjects.length === 0 && (
+        <p className="text-xs text-red-500 mt-2">ยังไม่มีวิชาในระบบ กรุณาสร้างวิชาก่อน</p>
+    )}
+</div>
+                                                        
+                                                        <div>
+    <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
+        เลือกชุดข้อสอบ
+    </label>
+    <div className="relative">
         <select 
-            value={systemConfig.activeSubjectId || ''} 
-            onChange={e => handleChangeSubject(e.target.value)} 
+            value={systemConfig.activeExamSetId || ''} 
+            onChange={e => {
+                const value = e.target.value;
+                console.log('Selected exam set:', value);
+                handleChangeExamSet(value);
+            }} 
             className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+            disabled={!systemConfig.activeSubjectId || currentSubjectExams.length === 0}
         >
-            <option value="">-- เลือกวิชา --</option>
-            {subjects.map(subject => (
-                <option key={subject.id} value={subject.id}>
-                    {subject.id} - {subject.title}
+            <option value="">-- เลือกชุดข้อสอบ --</option>
+            {currentSubjectExams.map(set => (
+                <option key={set.setId} value={set.setId}>
+                    ชุดที่ {set.setId}: {set.title}
                 </option>
             ))}
         </select>
@@ -2228,31 +2465,10 @@ useEffect(() => {
             <ChevronDown size={24}/>
         </div>
     </div>
+    {systemConfig.activeSubjectId && currentSubjectExams.length === 0 && (
+        <p className="text-xs text-amber-500 mt-2">ยังไม่มีชุดข้อสอบในวิชานี้</p>
+    )}
 </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
-                                                                เลือกชุดข้อสอบ
-                                                            </label>
-                                                            <div className="relative">
-                                                                <select 
-                                                                    value={systemConfig.activeExamSetId || ''} 
-                                                                    onChange={e => handleChangeExamSet(e.target.value)} 
-                                                                    className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
-                                                                    disabled={!systemConfig.activeSubjectId}
-                                                                >
-                                                                    <option value="">-- เลือกชุดข้อสอบ --</option>
-                                                                    {currentSubjectExams.map(set => (
-                                                                        <option key={set.setId} value={set.setId}>
-                                                                            ชุดที่ {set.setId}: {set.title}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                                    <ChevronDown size={24}/>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
                                                         <div>
                                                             <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
                                                                 ห้องเรียนที่สอบได้
@@ -2318,7 +2534,6 @@ useEffect(() => {
                                                 </div>
                                             </div>
 
-                                            {/* Live Monitor */}
                                             <div className="pt-10 space-y-6">
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-6">
@@ -2344,12 +2559,26 @@ useEffect(() => {
                                                         </div>
                                                     </div>
                                                     
-                                                    <button 
-                                                        onClick={exportToCSV} 
-                                                        className="text-xs bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border-2 border-emerald-100 hover:bg-emerald-100 font-black uppercase flex items-center gap-2"
-                                                    >
-                                                        <Download size={18}/> ส่งออกรายงาน
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setLoading(true);
+                                                                fetchAllData().then(() => {
+                                                                    showToast('รีเฟรชข้อมูลเรียบร้อย');
+                                                                    setLoading(false);
+                                                                });
+                                                            }}
+                                                            className="text-xs bg-blue-50 text-blue-600 px-4 py-3 rounded-2xl border-2 border-blue-100 hover:bg-blue-100 font-black uppercase flex items-center gap-2"
+                                                        >
+                                                            <RefreshCw size={16}/> รีเฟรช
+                                                        </button>
+                                                        <button 
+                                                            onClick={exportToCSV} 
+                                                            className="text-xs bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border-2 border-emerald-100 hover:bg-emerald-100 font-black uppercase flex items-center gap-2"
+                                                        >
+                                                            <Download size={18}/> ส่งออกรายงาน
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
