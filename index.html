@@ -510,6 +510,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const [viewingExam, setViewingExam] = useState(null); 
             const [viewingExamSet, setViewingExamSet] = useState(null);
             const [editingStudent, setEditingStudent] = useState(null);
+            const [finalResult, setFinalResult] = useState({ score: 0, total: 0 });
             const [systemConfig, setSystemConfig] = useState({ 
                 activeSubjectId: '', 
                 activeExamSetId: 1,
@@ -1135,50 +1136,48 @@ const handleFileSelect = async (e) => {
             }, [examSets, subjects, systemConfig.customTimeLimit]);
 
             const submitExam = useCallback(async (reason = 'Normal', isCheat = false) => {
-                if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted'].includes(reason)) return;
-                
-                clearInterval(timerRef.current);
-                setLoading(true); 
-                setLoadingMessage('กำลังส่งคำตอบ...');
-                
-                let score = 0;
-                if (currentExamSet && currentExamSet.questions) {
-                    currentExamSet.questions.forEach(q => { 
-                        if(answersRef.current[q.id] === q.correct) score++; 
-                    });
-                }
-                
-                try {
-                    await window.fb.setDoc(
-                        window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
-                        {
-                            studentId: student.id, 
-                            studentName: `${student.name} ${student.surname}`, 
-                            subjectId: currentSubject.id,
-                            subjectTitle: currentSubject.title,
-                            examSetId: currentExamSet.setId,
-                            examSetTitle: currentExamSet.title,
-                            score: score, 
-                            totalScore: currentExamSet.questions.length, 
-                            status: isCheat ? 'CHEATED' : 'COMPLETED', 
-                            reason, 
-                            answers: answersRef.current, 
-                            submittedAt: new Date().toISOString()
-                        }
-                    );
-                    
-                    showToast(`ส่งกระดาษคำตอบเรียบร้อย! คะแนน: ${score}/${currentExamSet.questions.length}`);
-                    
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                    
-                } catch (err) { 
-                    showToast('เกิดข้อผิดพลาดในการส่งคำตอบ', 'error');
-                    console.error(err);
-                }
-                setLoading(false);
-            }, [currentExamSet, currentSubject, student, examStatus, showToast]);
+    if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted'].includes(reason)) return;
+    
+    clearInterval(timerRef.current);
+    setLoading(true); 
+    setLoadingMessage('กำลังบันทึกคะแนน...');
+    
+    let score = 0;
+    if (currentExamSet && currentExamSet.questions) {
+        currentExamSet.questions.forEach(q => { 
+            if(answersRef.current[q.id] === q.correct) score++; 
+        });
+    }
+    
+    try {
+        await window.fb.setDoc(
+            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
+            {
+                studentId: student.id, 
+                studentName: `${student.name} ${student.surname}`, 
+                subjectId: currentSubject.id,
+                subjectTitle: currentSubject.title,
+                examSetId: Number(currentExamSet.setId),
+                examSetTitle: currentExamSet.title,
+                score: score, 
+                totalScore: currentExamSet.questions.length, 
+                status: isCheat ? 'CHEATED' : 'COMPLETED', 
+                reason, 
+                submittedAt: new Date().toISOString()
+            },
+            { merge: true }
+        );
+        
+        // --- เปลี่ยนตรงนี้: บันทึกคะแนนลง State และเปลี่ยน Step ---
+        setFinalResult({ score: score, total: currentExamSet.questions.length });
+        setStep('result');
+        showToast(`ส่งกระดาษคำตอบเรียบร้อยแล้ว`);
+        
+    } catch (err) { 
+        showToast('เกิดข้อผิดพลาดในการส่งคำตอบ', 'error');
+    }
+    setLoading(false);
+}, [currentExamSet, currentSubject, student, examStatus, showToast]);
 
           const handleStudentLogin = async (e) => {
     e.preventDefault(); 
@@ -1234,32 +1233,61 @@ const handleFileSelect = async (e) => {
     }
     setLoading(false);
 };
-            const startExam = () => {
-                if (!systemConfig.isOpen) {
-                    showToast('ระบบปิดการสอบอยู่', 'error');
-                    return;
-                }
-                if (!currentExamSet) {
-                    showToast('ข้อมูลข้อสอบไม่พร้อม', 'error');
-                    return;
-                }
-                
-                setTimeLeft(currentExamSet.timeLimit || 3600); 
-                setStep('exam'); 
-                setExamStatus('active');
-                
-                if (timerRef.current) clearInterval(timerRef.current);
-                
-                timerRef.current = setInterval(() => {
-                    setTimeLeft(prev => {
-                        if (prev <= 1) { 
-                            submitExam('หมดเวลา'); 
-                            return 0; 
-                        } 
-                        return prev - 1; 
-                    });
-                }, 1000);
-            };
+            const startExam = async () => {
+    if (!systemConfig.isOpen) {
+        showToast('ระบบปิดการสอบอยู่', 'error');
+        return;
+    }
+    if (!currentExamSet) {
+        showToast('ข้อมูลข้อสอบไม่พร้อม', 'error');
+        return;
+    }
+    
+    setLoading(true);
+    setLoadingMessage('กำลังเตรียมห้องสอบและบันทึกสถานะ...');
+    
+    try {
+        // --- ส่วนที่เพิ่มเข้ามา: บันทึกสถานะ IN_PROGRESS ลง Firestore ---
+        await window.fb.setDoc(
+            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
+            {
+                studentId: student.id, 
+                studentName: `${student.name} ${student.surname}`,
+                classroom: student.classroom || '',
+                subjectId: currentSubject.id,
+                subjectTitle: currentSubject.title,
+                examSetId: Number(currentExamSet.setId),
+                examSetTitle: currentExamSet.title,
+                status: 'IN_PROGRESS', 
+                startedAt: new Date().toISOString(),
+                score: null // ยังไม่มีคะแนนจนกว่าจะส่ง
+            },
+            { merge: true } // ใช้ merge เพื่อไม่ให้ไปทับข้อมูลอื่นที่มีอยู่
+        );
+
+        setTimeLeft(currentExamSet.timeLimit || 3600); 
+        setStep('exam'); 
+        setExamStatus('active');
+        
+        if (timerRef.current) clearInterval(timerRef.current);
+        
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) { 
+                    submitExam('หมดเวลา'); 
+                    return 0; 
+                } 
+                return prev - 1; 
+            });
+        }, 1000);
+        
+        showToast('เริ่มการสอบได้ ขอให้โชคดี');
+    } catch (err) {
+        console.error("Start Exam Error:", err);
+        showToast('ไม่สามารถแจ้งสถานะเริ่มสอบได้: ' + err.message, 'error');
+    }
+    setLoading(false);
+};
 
             const handleDeleteConfirm = async () => {
                 if (!confirmDelete.subjectId) return;
@@ -1361,11 +1389,12 @@ const handleFileSelect = async (e) => {
                         .then(snap => {
                             const allStudents = snap.docs.map(d => ({id: d.id, ...d.data()}));
                             
-                            const subQuery = window.fb.query(
-                                window.fb.collection(window.db, "submissions"), 
-                                window.fb.where("subjectId", "==", systemConfig.activeSubjectId || "NONE"),
-                                window.fb.where("examSetId", "==", systemConfig.activeExamSetId || 0)
-                            );
+                            // ปรับปรุงส่วนการสร้าง subQuery ใน useEffect
+const subQuery = window.fb.query(
+    window.fb.collection(window.db, "submissions"), 
+    window.fb.where("subjectId", "==", systemConfig.activeSubjectId || "NONE"),
+    window.fb.where("examSetId", "==", Number(systemConfig.activeExamSetId) || 0) // บังคับเป็น Number
+);
                             
                             unsubSubmissions = window.fb.onSnapshot(subQuery, (subSnap) => {
                                 const submissions = {};
@@ -2224,6 +2253,37 @@ useEffect(() => {
                                     </div>
                                 </div>
 
+                                {step === 'result' && (
+    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-slate-50">
+        <div className="glass-card p-8 md:p-12 rounded-[3rem] w-full max-w-lg shadow-2xl text-center border-white border-2">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={48} />
+            </div>
+            
+            <h2 className="text-3xl font-black mb-2 uppercase tracking-tighter text-slate-800">บันทึกคำตอบสำเร็จ</h2>
+            <p className="text-slate-500 font-bold mb-8 uppercase tracking-widest text-xs">{currentSubject?.title}</p>
+            
+            <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-xl mb-8 relative overflow-hidden">
+                <div className="relative z-10">
+                    <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em] mb-2">คะแนนที่คุณได้</p>
+                    <div className="text-7xl font-black tracking-tighter">
+                        {finalResult.score}<span className="text-2xl opacity-40 ml-2">/ {finalResult.total}</span>
+                    </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 text-white/5 text-9xl font-black rotate-12">SCORE</div>
+            </div>
+
+            <p className="text-slate-400 text-sm font-bold mb-10">ระบบได้ทำการบันทึกคะแนนของคุณเรียบร้อยแล้ว<br/>คุณสามารถออกจากระบบได้ทันที</p>
+            
+            <button 
+                onClick={() => window.location.reload()} 
+                className="w-full py-5 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all uppercase tracking-widest"
+            >
+                กลับสู่หน้าหลัก / ออกจากระบบ
+            </button>
+        </div>
+    </div>
+)}
                                 {/* Current Question */}
 <div className="bg-white p-10 md:p-16 rounded-[4rem] shadow-2xl relative overflow-hidden border border-white">
     <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-[12rem] font-black select-none pointer-events-none tracking-tighter leading-none">
