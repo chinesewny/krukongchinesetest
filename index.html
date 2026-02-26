@@ -766,68 +766,53 @@ const handleToggleExam = async (isOpen) => {
             };
 const handleChangeSubject = async (subjectId) => {
     if (!subjectId) return;
-    
     setLoading(true);
-    setLoadingMessage('กำลังสลับวิชา...');
-    
     try {
-        // 1. ดึงชุดข้อสอบที่มีของวิชานี้
+        // หาชุดข้อสอบที่มีของวิชานี้
         const sets = examSets[subjectId] || [];
-        
-        // 2. กำหนดค่าเริ่มต้น (ถ้ามีชุดข้อสอบให้ใช้ชุดที่ 1 ถ้าไม่มีให้กันไว้ก่อนเป็น 1)
-        const firstSet = sets.length > 0 ? sets[0] : { setId: 1, timeLimit: 3600 };
-        const targetSetId = Number(firstSet.setId); // บังคับเป็น Number
-        const targetTime = Number(firstSet.timeLimit / 60);
+        // ถ้ามีชุดข้อสอบ ให้ใช้ ID ของชุดแรกที่มี ถ้าไม่มีให้ใช้ 1
+        const firstSetId = sets.length > 0 ? Number(sets[0].setId) : 1;
+        const firstTimeLimit = sets.length > 0 ? (sets[0].timeLimit / 60) : 60;
 
-        // 3. บันทึกลง Firestore
-        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
+        const updateData = { 
             activeSubjectId: subjectId,
-            activeExamSetId: targetSetId 
-        });
+            activeExamSetId: firstSetId 
+        };
+
+        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
         
-        // 4. บังคับอัปเดต State ทันทีเพื่อให้ Dropdown เปลี่ยนค่า
-        setSystemConfig(prev => ({ 
-            ...prev, 
-            activeSubjectId: subjectId, 
-            activeExamSetId: targetSetId 
-        }));
+        // อัปเดต State ทันทีเพื่อป้องกัน UI กระโดดกลับ
+        setSystemConfig(prev => ({ ...prev, ...updateData }));
+        setAdminTimeLimitInput(firstTimeLimit);
         
-        setAdminTimeLimitInput(targetTime);
         showToast(`สลับเป็นวิชา ${subjectId} เรียบร้อย`);
     } catch (err) {
-        console.error('Error changing subject:', err);
-        showToast('ไม่สามารถเปลี่ยนวิชาได้: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
     }
     setLoading(false);
 };
 
 const handleChangeExamSet = async (setId) => {
-    if (!setId) {
-        showToast('กรุณาเลือกชุดข้อสอบ', 'error');
-        return;
-    }
-    
-    const setIdNum = parseInt(setId);
+    if (!setId) return;
+    const setIdNum = Number(setId); // บังคับเป็นตัวเลข
     setLoading(true);
-    setLoadingMessage('กำลังเปลี่ยนชุดข้อสอบ...');
-    
     try {
-        console.log('Changing exam set to:', setIdNum);
-        
         await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
             activeExamSetId: setIdNum 
         });
         
-        // อัปเดตเวลาจากชุดข้อสอบที่เลือก
+        // อัปเดต Local State ทันที
+        setSystemConfig(prev => ({ ...prev, activeExamSetId: setIdNum }));
+        
+        // อัปเดตเวลาตามชุดที่เลือก
         const sets = examSets[systemConfig.activeSubjectId] || [];
-        const selectedSet = sets.find(s => s.setId === setIdNum);
+        const selectedSet = sets.find(s => Number(s.setId) === setIdNum);
         if (selectedSet) {
             setAdminTimeLimitInput(selectedSet.timeLimit / 60);
         }
         
         showToast('เปลี่ยนชุดข้อสอบเรียบร้อย');
     } catch (err) {
-        console.error('Error changing exam set:', err);
         showToast(err.message, 'error');
     }
     setLoading(false);
@@ -1505,48 +1490,18 @@ useEffect(() => {
                 }
             }, [step, adminTab]);
 
-            // ✅ useEffect สำหรับอัปเดตเวลาเมื่อเปลี่ยนวิชาหรือชุดข้อสอบ
-            useEffect(() => {
-                if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
-                    const sets = examSets[systemConfig.activeSubjectId] || [];
-                    const selectedSet = sets.find(s => s.setId === systemConfig.activeExamSetId);
-                    if (selectedSet) {
-                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
-                    }
-                }
-            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
+            // แก้ไข useEffect ส่วนนี้ให้เหลือเพียงการโหลดเวลาครับ
+useEffect(() => {
+    if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
+        const sets = examSets[systemConfig.activeSubjectId] || [];
+        const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
+        if (selectedSet) {
+            setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+        }
+    }
+}, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
 
-            // ✅ ฟังก์ชันตรวจสอบสถานะการสอบ
-            const checkExamStatus = useCallback(async () => {
-                if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) return;
-                
-                try {
-                    const submissionsQuery = window.fb.query(
-                        window.fb.collection(window.db, "submissions"),
-                        window.fb.where("subjectId", "==", systemConfig.activeSubjectId),
-                        window.fb.where("examSetId", "==", systemConfig.activeExamSetId)
-                    );
-                    
-                    const submissionsSnap = await window.fb.getDocs(submissionsQuery);
-                    
-                    const totalStudents = dashboardData.length;
-                    const completed = submissionsSnap.docs.filter(d => d.data().status === 'COMPLETED').length;
-                    const inProgress = submissionsSnap.docs.filter(d => d.data().status === 'IN_PROGRESS').length;
-                    
-                    console.log(`สถานะการสอบ: นักเรียนทั้งหมด ${totalStudents} คน, สอบเสร็จ ${completed} คน, กำลังสอบ ${inProgress} คน`);
-                } catch (err) {
-                    console.error('Error checking exam status:', err);
-                }
-            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, dashboardData]);
-
-            // ✅ useEffect สำหรับตรวจสอบสถานะเมื่อเปลี่ยนวิชาหรือชุดข้อสอบ
-            useEffect(() => {
-                if (step === 'admin_dashboard' && adminTab === 'dashboard') {
-                    checkExamStatus();
-                }
-            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, adminTab, step, checkExamStatus]);
-// เพิ่ม useEffect สำหรับติดตามการเปลี่ยนแปลงของ systemConfig และโหลดข้อมูลที่เกี่ยวข้อง
-// ค้นหา useEffect ที่มี loadSubjectData แล้วแทนที่ด้วยชุดนี้
+            
 useEffect(() => {
     const syncTimeLimit = () => {
         if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
