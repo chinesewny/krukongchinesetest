@@ -505,21 +505,26 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const [adminClassroomInput, setAdminClassroomInput] = useState('All');
             const [monitorFilterRoom, setMonitorFilterRoom] = useState('All'); 
             const [dashboardData, setDashboardData] = useState([]);
+            const [alreadySubmittedData, setAlreadySubmittedData] = useState(null);
             const [editingExam, setEditingExam] = useState(null); 
             const [editingExamSet, setEditingExamSet] = useState(null);
             const [viewingExam, setViewingExam] = useState(null); 
             const [viewingExamSet, setViewingExamSet] = useState(null);
             const [editingStudent, setEditingStudent] = useState(null);
             const [finalResult, setFinalResult] = useState({ score: 0, total: 0 });
-            const [systemConfig, setSystemConfig] = useState({ 
-                activeSubjectId: '', 
+            const [systemConfig, setSystemConfig] = useState({
+                activeSubjectId: '',
                 activeExamSetId: 1,
-                isOpen: false, 
-                customTimeLimit: 0, 
-                activeClassroom: 'All', 
-                examOpenedAt: '', 
+                isOpen: false,
+                customTimeLimit: 0,
+                activeClassroom: 'All',
+                examOpenedAt: '',
                 examStartMs: 0,
-                roomPassword: '' 
+                roomPassword: '',
+                filterMode: 'classroom',
+                allowedStudentIds: [],
+                isMakeupExam: false,
+                makeupStudentIds: []
             });
             const [currentQIdx, setCurrentQIdx] = useState(0); 
             const [timeLeft, setTimeLeft] = useState(0);
@@ -551,11 +556,13 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             });
             const [selectedSubjectId, setSelectedSubjectId] = useState('');
             
-            const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, type: '', subjectId: null, setId: null });
+            const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, type: '', itemId: null, setId: null });
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
             
             const timerRef = useRef(null);
             const unsubscribers = useRef([]);
+            const submitExamRef = useRef(null);
+            const csvInputRef = useRef(null);
 
             const showToast = useCallback((message, type = 'success') => {
                 setToast({ show: true, message, type });
@@ -566,11 +573,41 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 unsubscribers.current = [];
             };
 
+            const canStudentEnterExam = (studentId, studentClassroom, config) => {
+                if (config.filterMode === 'individual') {
+                    return (config.allowedStudentIds || []).includes(String(studentId));
+                }
+                const cfgRoom = String(config.activeClassroom || 'All').trim().toLowerCase();
+                const studentRoom = String(studentClassroom || '').trim().toLowerCase();
+                return cfgRoom === 'all' || cfgRoom === studentRoom;
+            };
+
             const availableClassrooms = useMemo(() => {
                 if (!dashboardData || !Array.isArray(dashboardData)) return [];
                 return Array.from(new Set(dashboardData.map(d => String(d.classroom || '').trim())))
                     .filter(c => c && c !== 'undefined' && c !== '')
                     .sort();
+            }, [dashboardData]);
+
+            const classroomRankings = useMemo(() => {
+                const rankMap = {};
+                const byRoom = {};
+                dashboardData.forEach(d => {
+                    const room = String(d.classroom || '');
+                    if (!byRoom[room]) byRoom[room] = [];
+                    byRoom[room].push(d);
+                });
+                Object.values(byRoom).forEach(students => {
+                    // ถ้ามีข้อมูล studentNo ให้ใช้ค่านั้น ไม่งั้นให้เรียงจากรหัสนักเรียน
+                    const hasNo = students.some(s => s.studentNo > 0);
+                    if (hasNo) {
+                        students.forEach(s => { if (s.studentNo > 0) rankMap[s.id] = s.studentNo; });
+                    } else {
+                        const sorted = [...students].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                        sorted.forEach((s, idx) => { rankMap[s.id] = idx + 1; });
+                    }
+                });
+                return rankMap;
             }, [dashboardData]);
 
             const currentSubjectExams = useMemo(() => {
@@ -595,11 +632,10 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
     setLoading(true);
     try {
         const subjectsSnap = await window.fb.getDocs(window.fb.collection(window.db, "subjects"));
-        const subjectsData = subjectsSnap.docs.map(d => ({ 
-            id: d.id, 
-            ...d.data() 
+        const subjectsData = subjectsSnap.docs.map(d => ({
+            id: d.id,
+            ...d.data()
         }));
-        console.log('Subjects loaded:', subjectsData);
         setSubjects(subjectsData);
         
         const examSetsData = {};
@@ -607,12 +643,10 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const setsSnap = await window.fb.getDocs(
                 window.fb.collection(window.db, "subjects", subject.id, "examSets")
             );
-            examSetsData[subject.id] = setsSnap.docs.map(d => ({ 
-                setId: parseInt(d.id), 
-                ...d.data() 
+            examSetsData[subject.id] = setsSnap.docs.map(d => ({
+                setId: parseInt(d.id),
+                ...d.data()
             })).sort((a, b) => a.setId - b.setId);
-            
-            console.log(`Exam sets for ${subject.id}:`, examSetsData[subject.id]);
         }
         setExamSets(examSetsData);
         
@@ -620,7 +654,6 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
         if (systemConfig.activeSubjectId) {
             const subjectExists = subjectsData.some(s => s.id === systemConfig.activeSubjectId);
             if (!subjectExists) {
-                console.log('Active subject no longer exists, resetting...');
                 await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
                     activeSubjectId: '',
                     activeExamSetId: 1
@@ -674,6 +707,51 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 
                 showToast('ส่งออกรายงานสำเร็จ');
             }, [dashboardData, monitorFilterRoom, systemConfig.activeSubjectId, systemConfig.activeExamSetId, selectedExamPreview, subjects, showToast]);
+
+            const handleCSVUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const text = await file.text();
+                    const lines = text.split('\n').filter(l => l.trim());
+                    if (lines.length < 2) { showToast('ไฟล์ CSV ไม่มีข้อมูล', 'error'); return; }
+                    const header = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim());
+                    const idIdx       = header.findIndex(h => h.includes('รหัส'));
+                    const noIdx       = header.findIndex(h => h.includes('เลขที่'));
+                    const fullNameIdx = header.findIndex(h => h.includes('ชื่อ') && h.includes('นามสกุล'));
+                    const roomIdx     = header.findIndex(h => h.includes('ห้อง'));
+                    if (idIdx < 0 || fullNameIdx < 0 || roomIdx < 0) {
+                        showToast('CSV ต้องมีคอลัมน์: รหัสนักเรียน, เลขที่, ชื่อ-นามสกุล, ห้องเรียน', 'error');
+                        return;
+                    }
+                    setLoading(true);
+                    let count = 0;
+                    for (let i = 1; i < lines.length; i++) {
+                        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, '').trim());
+                        const id = (cols[idIdx] || '').replace(/^'/, '').trim();
+                        if (!id) continue;
+                        // แยกชื่อ-นามสกุล: ช่องว่างแรกคือตัวแบ่ง
+                        const fullName = (cols[fullNameIdx] || '').trim();
+                        const spaceAt = fullName.indexOf(' ');
+                        const name    = spaceAt >= 0 ? fullName.slice(0, spaceAt).trim() : fullName;
+                        const surname = spaceAt >= 0 ? fullName.slice(spaceAt + 1).trim() : '';
+                        const studentNo = noIdx >= 0 ? (Number(cols[noIdx]) || 0) : 0;
+                        await window.fb.setDoc(window.fb.doc(window.db, "students", id), {
+                            name,
+                            surname,
+                            classroom: cols[roomIdx] || '',
+                            studentNo
+                        }, { merge: true });
+                        count++;
+                    }
+                    showToast(`นำเข้านักเรียนสำเร็จ ${count} คน`);
+                    await fetchAllData();
+                } catch (err) {
+                    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+                }
+                setLoading(false);
+                if (csvInputRef.current) csvInputRef.current.value = '';
+            };
 
 const handleToggleExam = async (isOpen) => {
     // 1. ตรวจสอบความพร้อมเบื้องต้น
@@ -753,18 +831,52 @@ const handleToggleExam = async (isOpen) => {
 
             const handleResetSubmission = async (studentId) => {
                 if (!confirm(`ยืนยันการรีเซ็ตสถานะการสอบของนักเรียนรหัส ${studentId}?`)) return;
-                
+
                 setLoading(true);
                 try {
                     await window.fb.deleteDoc(
                         window.fb.doc(window.db, "submissions", `${studentId}_${systemConfig.activeSubjectId}_${systemConfig.activeExamSetId}`)
                     );
                     showToast("รีเซ็ตสถานะเรียบร้อย");
-                } catch (err) { 
+                } catch (err) {
                     showToast(err.message, 'error');
                 }
                 setLoading(false);
             };
+
+            const handleSaveFilterConfig = async (newFilterMode, newAllowedIds) => {
+                try {
+                    const updateData = { filterMode: newFilterMode, allowedStudentIds: newAllowedIds };
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
+                    setSystemConfig(prev => ({ ...prev, ...updateData }));
+                    showToast('บันทึกการตั้งค่าผู้เข้าสอบเรียบร้อย');
+                } catch (err) { showToast(err.message, 'error'); }
+            };
+
+            const handleToggleAllowedStudent = (studentId, currentAllowed) => {
+                const id = String(studentId);
+                const updated = currentAllowed.includes(id)
+                    ? currentAllowed.filter(x => x !== id)
+                    : [...currentAllowed, id];
+                handleSaveFilterConfig(systemConfig.filterMode, updated);
+            };
+
+            const handleSaveMakeupConfig = async (isMakeup, makeupIds) => {
+                try {
+                    const updateData = { isMakeupExam: !!isMakeup, makeupStudentIds: makeupIds };
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
+                    setSystemConfig(prev => ({ ...prev, ...updateData }));
+                    showToast('บันทึกการตั้งค่าสอบซ่อมเรียบร้อย');
+                } catch (err) { showToast(err.message, 'error'); }
+            };
+
+            const handleToggleMakeupStudent = (studentId) => {
+                const id = String(studentId);
+                const current = systemConfig.makeupStudentIds || [];
+                const updated = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+                handleSaveMakeupConfig(systemConfig.isMakeupExam, updated);
+            };
+
 const handleChangeSubject = async (subjectId) => {
     if (!subjectId) return;
     setLoading(true);
@@ -829,10 +941,39 @@ const handleFileSelect = async (e) => {
     try {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
-        
-        // เก็บบรรทัดไว้ตามเดิม ไม่ตัดช่องว่าง
+
         const lines = result.value.split('\n');
-        
+
+        // ฟังก์ชันแปลงตัวอักษรเฉลย → index (รองรับ A-D, a-d, ก-ง, 1-4)
+        const getCorrectIndex = (answer) => {
+            if (!answer) return -1;
+            const thaiMap = { 'ก': 0, 'ข': 1, 'ค': 2, 'ง': 3 };
+            const numMap  = { '1': 0, '2': 1, '3': 2, '4': 3 };
+            const engMap  = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+            if (thaiMap[answer] !== undefined) return thaiMap[answer];
+            if (numMap[answer]  !== undefined) return numMap[answer];
+            if (engMap[answer.toUpperCase()] !== undefined) return engMap[answer.toUpperCase()];
+            return -1;
+        };
+
+        // บันทึกข้อสอบก่อนหน้าและเพิ่มลง array
+        const saveCurrentQuestion = (q, textLines, options, answer, idSuffix) => {
+            if (!q || textLines.length === 0) return;
+            q.text = textLines.join('\n');
+            const correctIndex = getCorrectIndex(answer);
+            if (correctIndex !== -1 && options.length > 0) {
+                newQuestionsTemp.push({
+                    id: Date.now() + Math.random() + idSuffix,
+                    text: q.text,
+                    options: [...options],
+                    correct: correctIndex,
+                    sectionTitle: '',
+                    passage: '',
+                    passagePosition: 'top'
+                });
+            }
+        };
+
         const newQuestionsTemp = [];
         let currentQuestion = null;
         let collectingOptions = false;
@@ -840,108 +981,60 @@ const handleFileSelect = async (e) => {
         let correctAnswer = null;
         let questionTextLines = [];
         let foundFirstOption = false;
-        
+
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].replace(/\r$/, ''); // ลบ carriage return
+            const line = lines[i].replace(/\r$/, '');
             const trimmedLine = line.trim();
-            
-            // ข้ามบรรทัดว่างแต่เก็บไว้เป็นตัวแบ่ง
+
             if (trimmedLine === '') {
                 if (collectingOptions && !foundFirstOption) {
-                    questionTextLines.push(''); // เก็บบรรทัดว่างไว้ในคำถาม
+                    questionTextLines.push('');
                 }
                 continue;
             }
-            
-            // ตรวจสอบว่าเป็นข้อใหม่หรือไม่ (ขึ้นต้นด้วยตัวเลขและจุด)
-            if (trimmedLine.match(/^\d+\./)) {
-                // ถ้ามีคำถามก่อนหน้า ให้บันทึก
-                if (currentQuestion && questionTextLines.length > 0) {
-                    currentQuestion.text = questionTextLines.join('\n'); // ใช้ \n เพื่อรักษาบรรทัด
-                    
-                    if (correctAnswer !== null && currentOptions.length > 0) {
-                        let correctIndex = -1;
-                        const answerLetter = correctAnswer.toUpperCase();
-                        
-                        if (answerLetter === 'A') correctIndex = 0;
-                        else if (answerLetter === 'B') correctIndex = 1;
-                        else if (answerLetter === 'C') correctIndex = 2;
-                        else if (answerLetter === 'D') correctIndex = 3;
-                        
-                        if (correctIndex !== -1) {
-                            const questionData = {
-                                id: Date.now() + Math.random() + i,
-                                text: currentQuestion.text,
-                                options: currentOptions.map(opt => {
-                                    // เก็บตัวเลือกตามเดิม รวมทั้ง A. B. C. D.
-                                    return opt;
-                                }),
-                                correct: correctIndex,
-                                sectionTitle: '',
-                                passage: '',
-                                passagePosition: 'top'
-                            };
-                            newQuestionsTemp.push(questionData);
-                        }
-                    }
-                }
-                
-                // เริ่มคำถามใหม่
-                questionTextLines = [line]; // เก็บทั้งบรรทัดรวมทั้งตัวเลขข้อ
+
+            // ตรวจว่าเป็นตัวเลือก 1-4 ก่อน (ต้องเช็คก่อนตรวจข้อใหม่ เพื่อป้องกันสับสน)
+            const isNumberedOption = collectingOptions &&
+                currentOptions.length < 4 &&
+                trimmedLine.match(/^[1-4]\.\s/);
+
+            // ตรวจว่าเป็นข้อใหม่ (ขึ้นต้นด้วยตัวเลขและจุด แต่ไม่ใช่ตัวเลือก 1-4)
+            if (!isNumberedOption && trimmedLine.match(/^\d+\./)) {
+                saveCurrentQuestion(currentQuestion, questionTextLines, currentOptions, correctAnswer, i);
+
+                // เริ่มข้อใหม่
+                questionTextLines = [line];
                 currentQuestion = { text: '' };
                 collectingOptions = true;
                 currentOptions = [];
                 correctAnswer = null;
                 foundFirstOption = false;
             }
-            // ตรวจสอบว่าเป็นตัวเลือก (A. B. C. D.)
-            else if (collectingOptions && trimmedLine.match(/^[A-D]\./)) {
+            // ตรวจตัวเลือก: รองรับ A-D, a-d, ก-ง, และ 1-4 (เฉพาะเมื่อ isNumberedOption)
+            else if (collectingOptions && (
+                trimmedLine.match(/^[A-Da-d]\./) ||
+                trimmedLine.match(/^[ก-ง]\./) ||
+                isNumberedOption
+            )) {
                 foundFirstOption = true;
-                currentOptions.push(line); // เก็บทั้งบรรทัดรวมทั้ง A.
+                currentOptions.push(line);
             }
-            // ตรวจสอบว่าเป็นเฉลย (ans: A หรือ เฉลย: A)
-            else if (trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-D])/i)) {
-                const match = trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-D])/i);
-                if (match) {
-                    correctAnswer = match[2];
-                }
+            // ตรวจเฉลย: รองรับ A-D, ก-ง, 1-4
+            else if (trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-Da-dก-ง1-4])/i)) {
+                const match = trimmedLine.match(/^(ans|เฉลย)\s*:\s*([A-Da-dก-ง1-4])/i);
+                if (match) correctAnswer = match[2];
             }
-            // ถ้าไม่ใช่ตัวเลือกและไม่ใช่เฉลย แสดงว่าเป็นข้อความคำถามเพิ่มเติม
+            // ข้อความเพิ่มเติมของคำถาม
             else if (collectingOptions && !foundFirstOption) {
-                questionTextLines.push(line); // เก็บตามเดิม
+                questionTextLines.push(line);
             }
         }
-        
-        // เพิ่มคำถามสุดท้าย
-        if (currentQuestion && questionTextLines.length > 0) {
-            currentQuestion.text = questionTextLines.join('\n');
-            
-            if (correctAnswer !== null && currentOptions.length > 0) {
-                let correctIndex = -1;
-                const answerLetter = correctAnswer.toUpperCase();
-                
-                if (answerLetter === 'A') correctIndex = 0;
-                else if (answerLetter === 'B') correctIndex = 1;
-                else if (answerLetter === 'C') correctIndex = 2;
-                else if (answerLetter === 'D') correctIndex = 3;
-                
-                if (correctIndex !== -1) {
-                    const questionData = {
-                        id: Date.now() + Math.random() + 999,
-                        text: currentQuestion.text,
-                        options: currentOptions.map(opt => opt),
-                        correct: correctIndex,
-                        sectionTitle: '',
-                        passage: '',
-                        passagePosition: 'top'
-                    };
-                    newQuestionsTemp.push(questionData);
-                }
-            }
-        }
-        
-        // จัดรูปแบบข้อสอบที่นำเข้า (ไม่ต้องแก้ไขข้อความ)
-        const formattedQuestions = newQuestionsTemp;
+
+        // บันทึกข้อสุดท้าย
+        saveCurrentQuestion(currentQuestion, questionTextLines, currentOptions, correctAnswer, 999);
+
+        // จัดรูปแบบข้อสอบ (เติมตัวเลือกให้ครบ 4 ช่องถ้าขาด)
+        const formattedQuestions = formatImportedQuestions(newQuestionsTemp);
         
         // แสดงตัวอย่างการนำเข้า
         if (formattedQuestions.length > 0) {
@@ -1021,6 +1114,11 @@ const handleFileSelect = async (e) => {
             const handleCreateSubject = async () => {
                 if (!newSubject.id || !newSubject.id.trim()) {
                     showToast('กรุณากรอกรหัสวิชา', 'error');
+                    return;
+                }
+                // Firestore ไม่รองรับ "/" ใน document ID
+                if (newSubject.id.includes('/')) {
+                    showToast('รหัสวิชาไม่สามารถมีเครื่องหมาย "/" ได้', 'error');
                     return;
                 }
                 if (!newSubject.title || !newSubject.title.trim()) {
@@ -1108,7 +1206,8 @@ const handleFileSelect = async (e) => {
 
             const prepareExamFromData = useCallback((subjectId, setId) => {
                 const sets = examSets[subjectId] || [];
-                const selectedSet = sets.find(s => s.setId === setId);
+                // ใช้ Number() ทั้งสองฝั่งป้องกัน string vs number mismatch
+                const selectedSet = sets.find(s => Number(s.setId) === Number(setId));
                 
                 if (!selectedSet) return;
                 
@@ -1136,7 +1235,7 @@ const handleFileSelect = async (e) => {
             }, [examSets, subjects, systemConfig.customTimeLimit]);
 
             const submitExam = useCallback(async (reason = 'Normal', isCheat = false) => {
-    if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted'].includes(reason)) return;
+    if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted', 'หมดเวลา'].includes(reason)) return;
     
     clearInterval(timerRef.current);
     setLoading(true); 
@@ -1178,6 +1277,8 @@ const handleFileSelect = async (e) => {
     }
     setLoading(false);
 }, [currentExamSet, currentSubject, student, examStatus, showToast]);
+            // อัปเดต ref ทุกครั้งที่ submitExam เปลี่ยน เพื่อแก้ปัญหา stale closure ใน timer
+            submitExamRef.current = submitExam;
 
           const handleStudentLogin = async (e) => {
     e.preventDefault(); 
@@ -1197,29 +1298,41 @@ const handleFileSelect = async (e) => {
         if (snap.exists()) {
             const sData = { id: snap.id, ...snap.data() };
             setStudent(sData);
-            
+
             const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
             const activeSetId = systemConfig.activeExamSetId;
+            const isAllowed = canStudentEnterExam(sData.id, sData.classroom, systemConfig);
 
-            // --- ส่วนที่แก้ไข: ตรวจสอบสิทธิ์ห้องเรียนทันทีที่เข้าสู่ระบบ ---
-            const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
-            const studentRoom = String(sData.classroom || '').trim().toLowerCase();
-            const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
-            
-            // ต้องผ่านเงื่อนไข: ระบบเปิดสอบ + เลือกวิชาแล้ว + ห้องเรียนถูกต้อง
-            if (systemConfig.isOpen && activeSubjectId && activeSetId && isCorrectRoom) { 
-                await fetchAllData();
-                const sets = examSets[activeSubjectId] || [];
+            // ต้องผ่านเงื่อนไข: ระบบเปิดสอบ + เลือกวิชาแล้ว + มีสิทธิ์เข้าสอบ
+            if (systemConfig.isOpen && activeSubjectId && activeSetId && isAllowed) {
+                // ตรวจสอบว่าสอบแล้วหรือยัง
+                const submissionId = `${sData.id}_${activeSubjectId}_${activeSetId}`;
+                const existingSnap = await window.fb.getDoc(window.fb.doc(window.db, "submissions", submissionId));
+                if (existingSnap.exists() && existingSnap.data().status === 'COMPLETED') {
+                    const isMakeupAllowed = systemConfig.isMakeupExam &&
+                        (systemConfig.makeupStudentIds || []).includes(String(sData.id));
+                    if (!isMakeupAllowed) {
+                        setAlreadySubmittedData(existingSnap.data());
+                        setStep('already_submitted');
+                        showToast('คุณได้ทำการสอบแล้ว');
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                // ใช้ return value โดยตรง ไม่อ่านจาก state เพราะ setState ยังไม่ update
+                const latestData = await fetchAllData();
+                const sets = latestData.examSets[activeSubjectId] || [];
                 const found = sets.find(s => s.setId == activeSetId);
-                
-                if (found) { 
-                    prepareExamFromData(activeSubjectId, activeSetId); 
+
+                if (found) {
+                    prepareExamFromData(activeSubjectId, activeSetId);
                     setStep('instructions');
                 } else {
                     setStep('waiting_room');
                 }
             } else {
-                // หากไม่ตรงเงื่อนไข (เช่น อยู่คนละห้อง) ให้ส่งไปที่หน้า Waiting Room
+                // หากไม่ตรงเงื่อนไข ให้ส่งไปที่หน้า Waiting Room
                 setStep('waiting_room');
             }
             
@@ -1273,11 +1386,12 @@ const handleFileSelect = async (e) => {
         
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
-                if (prev <= 1) { 
-                    submitExam('หมดเวลา'); 
-                    return 0; 
-                } 
-                return prev - 1; 
+                if (prev <= 1) {
+                    // ใช้ ref แทน closure เพื่อป้องกัน stale closure bug
+                    submitExamRef.current?.('TimeOut');
+                    return 0;
+                }
+                return prev - 1;
             });
         }, 1000);
         
@@ -1290,28 +1404,28 @@ const handleFileSelect = async (e) => {
 };
 
             const handleDeleteConfirm = async () => {
-                if (!confirmDelete.subjectId) return;
-                
+                if (!confirmDelete.itemId) return;
+
                 setLoading(true);
                 setLoadingMessage('กำลังลบข้อมูล...');
-                
+
                 try {
                     if (confirmDelete.type === 'student') {
-                        await window.fb.deleteDoc(window.fb.doc(window.db, "students", confirmDelete.subjectId));
+                        await window.fb.deleteDoc(window.fb.doc(window.db, "students", confirmDelete.itemId));
                         showToast('ลบข้อมูลนักเรียนเรียบร้อย');
                     } else if (confirmDelete.type === 'subject') {
-                        const sets = examSets[confirmDelete.subjectId] || [];
+                        const sets = examSets[confirmDelete.itemId] || [];
                         for (const set of sets) {
                             await window.fb.deleteDoc(
-                                window.fb.doc(window.db, "subjects", confirmDelete.subjectId, "examSets", set.setId.toString())
+                                window.fb.doc(window.db, "subjects", confirmDelete.itemId, "examSets", set.setId.toString())
                             );
                         }
-                        await window.fb.deleteDoc(window.fb.doc(window.db, "subjects", confirmDelete.subjectId));
+                        await window.fb.deleteDoc(window.fb.doc(window.db, "subjects", confirmDelete.itemId));
                         showToast('ลบวิชาและชุดข้อสอบเรียบร้อย');
                         await fetchAllData();
                     } else if (confirmDelete.type === 'examSet') {
                         await window.fb.deleteDoc(
-                            window.fb.doc(window.db, "subjects", confirmDelete.subjectId, "examSets", confirmDelete.setId.toString())
+                            window.fb.doc(window.db, "subjects", confirmDelete.itemId, "examSets", confirmDelete.setId.toString())
                         );
                         showToast('ลบชุดข้อสอบเรียบร้อย');
                         await fetchAllData();
@@ -1319,9 +1433,9 @@ const handleFileSelect = async (e) => {
                 } catch (err) {
                     showToast(err.message, 'error');
                 }
-                
+
                 setLoading(false);
-                setConfirmDelete({ isOpen: false, type: '', subjectId: null, setId: null });
+                setConfirmDelete({ isOpen: false, type: '', itemId: null, setId: null });
             };
 
             // --- Effects ---
@@ -1340,9 +1454,18 @@ const handleFileSelect = async (e) => {
                 init();
                 
                 const unsubConfig = window.fb.onSnapshot(
-                    window.fb.doc(window.db, "config", "system"), 
+                    window.fb.doc(window.db, "config", "system"),
                     (doc) => {
-                        if (doc.exists()) setSystemConfig(doc.data());
+                        if (doc.exists()) {
+                            setSystemConfig(prev => ({
+                                filterMode: 'classroom',
+                                allowedStudentIds: [],
+                                isMakeupExam: false,
+                                makeupStudentIds: [],
+                                ...prev,
+                                ...doc.data()
+                            }));
+                        }
                     }
                 );
                 
@@ -1362,100 +1485,110 @@ const handleFileSelect = async (e) => {
 
             useEffect(() => {
                 let unsubStudent = null;
-                
+
                 if (student?.id && (['waiting_room', 'instructions', 'exam'].includes(step))) {
                     unsubStudent = window.fb.onSnapshot(
-                        window.fb.doc(window.db, "students", student.id), 
+                        window.fb.doc(window.db, "students", student.id),
                         (doc) => {
                             if (doc.exists()) setStudent({ id: doc.id, ...doc.data() });
                         }
                     );
-                    
-                    if (unsubStudent) {
-                        unsubscribers.current.push(unsubStudent);
-                    }
                 }
-                
-                return cleanupListeners;
+
+                // คืน cleanup เฉพาะ listener ของ effect นี้เท่านั้น
+                // ไม่ใช้ cleanupListeners() เพราะจะลบ listener อื่น (config/admin) ด้วย
+                return () => {
+                    if (unsubStudent) unsubStudent();
+                };
             }, [student?.id, step]);
 
             useEffect(() => {
                 let unsubSubmissions = null;
-                
+                let cancelled = false; // flag ป้องกัน subscribe หลัง cleanup
+
                 if (step === 'admin_dashboard' && (adminTab === 'manage_students' || adminTab === 'dashboard')) {
                     setLoading(true);
-                    
+
                     window.fb.getDocs(window.fb.collection(window.db, "students"))
                         .then(snap => {
+                            if (cancelled) return; // effect ถูก cleanup แล้ว ไม่ต้อง subscribe
                             const allStudents = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                            
-                            // ปรับปรุงส่วนการสร้าง subQuery ใน useEffect
-const subQuery = window.fb.query(
-    window.fb.collection(window.db, "submissions"), 
-    window.fb.where("subjectId", "==", systemConfig.activeSubjectId || "NONE"),
-    window.fb.where("examSetId", "==", Number(systemConfig.activeExamSetId) || 0) // บังคับเป็น Number
-);
-                            
+
+                            const subQuery = window.fb.query(
+                                window.fb.collection(window.db, "submissions"),
+                                window.fb.where("subjectId", "==", systemConfig.activeSubjectId || "NONE"),
+                                window.fb.where("examSetId", "==", Number(systemConfig.activeExamSetId) || 0)
+                            );
+
                             unsubSubmissions = window.fb.onSnapshot(subQuery, (subSnap) => {
+                                if (cancelled) return;
                                 const submissions = {};
-                                subSnap.forEach(doc => { 
-                                    submissions[doc.data().studentId] = doc.data(); 
+                                subSnap.forEach(doc => {
+                                    submissions[doc.data().studentId] = doc.data();
                                 });
-                                
+
                                 setDashboardData(allStudents.map(std => {
                                     const sub = submissions[std.id];
-                                    return { 
-                                        ...std, 
-                                        score: sub?.score, 
-                                        status: sub?.status || 'รอเข้าสอบ', 
-                                        reason: sub?.reason 
+                                    return {
+                                        ...std,
+                                        score: sub?.score,
+                                        status: sub?.status || 'รอเข้าสอบ',
+                                        reason: sub?.reason
                                     };
                                 }));
                                 setLoading(false);
-                            }, (error) => {
-                                console.error(error);
+                            }, () => {
                                 setLoading(false);
                             });
-                            
-                            if (unsubSubmissions) {
-                                unsubscribers.current.push(unsubSubmissions);
-                            }
                         })
                         .catch(() => setLoading(false));
                 }
-                
-                return cleanupListeners;
+
+                // คืน cleanup เฉพาะ listener ของ effect นี้เท่านั้น
+                return () => {
+                    cancelled = true;
+                    if (unsubSubmissions) unsubSubmissions();
+                };
             }, [step, adminTab, systemConfig.activeSubjectId, systemConfig.activeExamSetId]);
 
 useEffect(() => {
     const autoRedirect = async () => {
-        // ต้องอยู่ในหน้า Waiting Room และระบบเปิดสอบแล้ว
         if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeSubjectId || !student) return;
-        
-        const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
-        const studentRoom = String(student.classroom || '').trim().toLowerCase();
-        const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
-        
-        // เฉพาะนักเรียนที่ห้องเรียนตรงกับที่ Admin กำหนดเท่านั้นที่จะถูกดึงเข้าสอบ
-        if (isCorrectRoom) {
-            setLoading(true); 
-            setLoadingMessage('กำลังตรวจสอบสิทธิ์ห้องเรียน...');
-            
-            // โหลดข้อมูลล่าสุดเพื่อความมั่นใจ
+
+        const isAllowed = canStudentEnterExam(student.id, student.classroom, systemConfig);
+
+        if (isAllowed) {
+            setLoading(true);
+            setLoadingMessage('กำลังตรวจสอบสิทธิ์...');
+
+            // ตรวจสอบว่าสอบแล้วหรือยัง
+            const submissionId = `${student.id}_${systemConfig.activeSubjectId}_${systemConfig.activeExamSetId}`;
+            const existingSnap = await window.fb.getDoc(window.fb.doc(window.db, "submissions", submissionId));
+            if (existingSnap.exists() && existingSnap.data().status === 'COMPLETED') {
+                const isMakeupAllowed = systemConfig.isMakeupExam &&
+                    (systemConfig.makeupStudentIds || []).includes(String(student.id));
+                if (!isMakeupAllowed) {
+                    setAlreadySubmittedData(existingSnap.data());
+                    setStep('already_submitted');
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const latestData = await fetchAllData();
             const sets = latestData.examSets[systemConfig.activeSubjectId] || [];
             const found = sets.find(s => s.setId == systemConfig.activeExamSetId);
-            
-            if (found) { 
-                prepareExamFromData(systemConfig.activeSubjectId, systemConfig.activeExamSetId); 
+
+            if (found) {
+                prepareExamFromData(systemConfig.activeSubjectId, systemConfig.activeExamSetId);
                 setStep('instructions');
             }
             setLoading(false);
         }
     };
-    
+
     autoRedirect();
-}, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, step, student]);
+}, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, systemConfig.filterMode, systemConfig.allowedStudentIds, systemConfig.isMakeupExam, systemConfig.makeupStudentIds, step, student]);
             // Anti-Cheat
             useEffect(() => {
                 if (step !== 'exam' || examStatus !== 'active') return;
@@ -1473,10 +1606,10 @@ useEffect(() => {
                     });
                 };
                 
-                const handleVisibility = () => { 
-                    if (document.hidden) handleCheat(); 
+                const handleVisibility = () => {
+                    if (document.hidden) handleCheat();
                 };
-                
+
                 const handleKeyDown = (e) => {
                     if (e.key === 'PrintScreen' || (e.ctrlKey && e.shiftKey && e.key === 'S')) {
                         setIsBlackout(true);
@@ -1484,14 +1617,18 @@ useEffect(() => {
                         showToast('🚨 ตรวจพบพฤติกรรมสุ่มเสี่ยงต่อการทุจริต', 'error');
                     }
                 };
-                
+
+                // ต้องเก็บ reference เพื่อให้ removeEventListener ทำงานได้
+                const handleContextMenu = (e) => e.preventDefault();
+
                 document.addEventListener('visibilitychange', handleVisibility);
                 document.addEventListener('keydown', handleKeyDown);
-                document.addEventListener('contextmenu', e => e.preventDefault());
-                
+                document.addEventListener('contextmenu', handleContextMenu);
+
                 return () => {
                     document.removeEventListener('visibilitychange', handleVisibility);
                     document.removeEventListener('keydown', handleKeyDown);
+                    document.removeEventListener('contextmenu', handleContextMenu);
                 };
             }, [step, examStatus, submitExam, showToast]);
 
@@ -1507,10 +1644,6 @@ useEffect(() => {
                 }
             }, [newExamSet.questions]);
             
-            // ✅ useEffect สำหรับติดตามการเปลี่ยนแปลงของ systemConfig
-            useEffect(() => {
-                console.log('systemConfig updated:', systemConfig);
-            }, [systemConfig]);
             
             // ✅ useEffect สำหรับโหลดข้อมูลเมื่อเข้าสู่หน้า manage_exams
             useEffect(() => {
@@ -1519,33 +1652,18 @@ useEffect(() => {
                 }
             }, [step, adminTab]);
 
-            // แก้ไข useEffect ส่วนนี้ให้เหลือเพียงการโหลดเวลาครับ
-useEffect(() => {
-    if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
-        const sets = examSets[systemConfig.activeSubjectId] || [];
-        const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
-        if (selectedSet) {
-            setAdminTimeLimitInput(selectedSet.timeLimit / 60);
-        }
-    }
-}, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
+            // sync เวลาสอบใน input ให้ตรงกับชุดข้อสอบที่เลือก
+            useEffect(() => {
+                if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
+                    const sets = examSets[systemConfig.activeSubjectId] || [];
+                    const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
+                    if (selectedSet) {
+                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+                    }
+                }
+            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
 
-            
-useEffect(() => {
-    const syncTimeLimit = () => {
-        if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
-            const sets = examSets[systemConfig.activeSubjectId] || [];
-            const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
-            
-            if (selectedSet) {
-                // อัปเดตเวลาในช่อง Input ให้ตรงกับชุดข้อสอบที่เลือกในฐานข้อมูล
-                setAdminTimeLimitInput(selectedSet.timeLimit / 60);
-            }
-        }
-    };
-    syncTimeLimit();
-}, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);          
-            
+
             // Manage Students Tab
             const renderManageStudents = () => (
                 <div className="space-y-6">
@@ -1553,12 +1671,27 @@ useEffect(() => {
                         <h3 className="font-black text-2xl uppercase tracking-tighter">
                             จัดการนักเรียน
                         </h3>
-                        <button 
-                            onClick={() => setEditingStudent({})} 
-                            className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl uppercase text-xs tracking-widest"
-                        >
-                            <Plus size={18}/> เพิ่มนักเรียน
-                        </button>
+                        <div className="flex gap-3">
+                            <input
+                                ref={csvInputRef}
+                                type="file"
+                                accept=".csv"
+                                className="hidden"
+                                onChange={handleCSVUpload}
+                            />
+                            <button
+                                onClick={() => csvInputRef.current?.click()}
+                                className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all"
+                            >
+                                <Upload size={18}/> นำเข้า CSV
+                            </button>
+                            <button
+                                onClick={() => setEditingStudent({})}
+                                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl uppercase text-xs tracking-widest"
+                            >
+                                <Plus size={18}/> เพิ่มนักเรียน
+                            </button>
+                        </div>
                     </div>
                     
                     <div className="bg-white border-2 border-slate-50 rounded-[3rem] overflow-hidden shadow-xl">
@@ -1586,7 +1719,7 @@ useEffect(() => {
                                                     <Edit size={20}/>
                                                 </button>
                                                 <button 
-                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', subjectId: std.id, setId: null })} 
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', itemId: std.id, setId: null })} 
                                                     className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-red-500 transition-all shadow-sm"
                                                 >
                                                     <Trash size={20}/>
@@ -1646,7 +1779,7 @@ useEffect(() => {
                                                     <Plus size={20}/>
                                                 </button>
                                                 <button 
-                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', subjectId: subject.id, setId: null })} 
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', itemId: subject.id, setId: null })} 
                                                     className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all"
                                                     title="ลบวิชา"
                                                 >
@@ -1701,7 +1834,7 @@ useEffect(() => {
                                                                         <Eye size={18}/>
                                                                     </button>
                                                                     <button 
-                                                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', subjectId: subject.id, setId: set.setId })} 
+                                                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', itemId: subject.id, setId: set.setId })} 
                                                                         className="p-3 bg-white text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
                                                                         title="ลบ"
                                                                     >
@@ -1942,7 +2075,7 @@ useEffect(() => {
                         title="ยืนยันการลบ"
                         message="คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถเรียกคืนได้"
                         onConfirm={handleDeleteConfirm}
-                        onCancel={() => setConfirmDelete({ isOpen: false, type: '', subjectId: null, setId: null })}
+                        onCancel={() => setConfirmDelete({ isOpen: false, type: '', itemId: null, setId: null })}
                     />
                     
                     {toast.show && (
@@ -2099,6 +2232,34 @@ useEffect(() => {
                         </div>
                     )}
 
+                    {/* Already Submitted Section */}
+                    {step === 'already_submitted' && (
+                        <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
+                            <div className="glass-card p-12 rounded-[3.5rem] w-full max-w-md shadow-2xl text-center border-white border-2">
+                                <div className="p-5 bg-emerald-600 text-white rounded-[2rem] shadow-xl inline-block mb-8">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                </div>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">คุณได้ทำการสอบแล้ว</h2>
+                                <p className="text-slate-400 font-bold text-sm mb-10">หากต้องการสอบใหม่ กรุณาติดต่อผู้ดูแลระบบเพื่อรีเซ็ตคะแนน</p>
+                                <div className="bg-slate-50 rounded-[2.5rem] p-8 mb-8 space-y-3">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">คะแนนที่ได้</p>
+                                    <p className="text-7xl font-black text-emerald-600 leading-none">
+                                        {alreadySubmittedData?.score ?? '-'}
+                                    </p>
+                                    <p className="text-xs text-slate-400 font-bold mt-4">
+                                        {student?.name} {student?.surname} | ห้อง {student?.classroom}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => { setStep('login'); setStudent(null); setAlreadySubmittedData(null); }}
+                                    className="w-full py-4 rounded-3xl font-black text-sm uppercase bg-slate-900 text-white hover:bg-black transition-all shadow-xl"
+                                >
+                                    กลับหน้าหลัก
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Waiting Room Section */}
 {step === 'waiting_room' && (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -2106,23 +2267,20 @@ useEffect(() => {
             <h2 className="text-4xl font-black mb-10 uppercase">ห้องรอสอบ</h2>
 
             {(() => {
-                const cfgRoom = String(systemConfig.activeClassroom || 'All').trim().toLowerCase();
-                const studentRoom = String(student?.classroom || '').trim().toLowerCase();
-                const isCorrectRoom = cfgRoom === 'all' || cfgRoom === studentRoom;
-                
-                // หากระบบเปิดแล้ว แต่ห้องเรียนไม่ตรงกับที่กำหนด
-                if (systemConfig.isOpen && !isCorrectRoom) {
+                const isAllowed = student ? canStudentEnterExam(student.id, student.classroom, systemConfig) : false;
+
+                if (systemConfig.isOpen && !isAllowed) {
+                    const msg = systemConfig.filterMode === 'individual'
+                        ? 'คุณไม่ได้รับการกำหนดให้เข้าสอบในรอบนี้'
+                        : `วิชานี้เปิดให้เฉพาะห้อง ${systemConfig.activeClassroom} เข้าสอบในขณะนี้`;
                     return (
                         <div className="mb-10 p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] animate-shake">
                             <div className="text-red-600 font-black text-2xl mb-2">❌ ไม่มีสิทธิ์สอบ</div>
-                            <div className="text-red-400 font-bold">
-                                วิชานี้เปิดให้เฉพาะห้อง <span className="text-red-600 font-black">{systemConfig.activeClassroom}</span> เข้าสอบในขณะนี้
-                            </div>
+                            <div className="text-red-400 font-bold">{msg}</div>
                         </div>
                     );
                 }
-                
-                // กรณีห้องถูกต้อง หรือระบบยังไม่เปิด
+
                 return (
                     <div className="relative inline-block mb-10">
                         <div className="w-24 h-24 border-[8px] border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
@@ -2135,11 +2293,11 @@ useEffect(() => {
             <div className="font-black text-blue-600 text-2xl bg-blue-50 py-5 px-8 rounded-3xl border-2 border-blue-100 inline-block mb-4">
                 {currentSubject?.title || 'รออาจารย์เลือกวิชา...'}
             </div>
-            
+
             <p className="mt-8 text-sm text-slate-400 italic">
-                {systemConfig.isOpen && (String(systemConfig.activeClassroom).toLowerCase() === 'all' || String(systemConfig.activeClassroom).toLowerCase() === String(student?.classroom).toLowerCase())
-                    ? 'สิทธิ์ถูกต้อง ระบบกำลังพาคุณเข้าสอบ...' 
-                    : 'ระบบจะตรวจสอบห้องเรียนของคุณอัตโนมัติ'}
+                {systemConfig.isOpen && student && canStudentEnterExam(student.id, student.classroom, systemConfig)
+                    ? 'สิทธิ์ถูกต้อง ระบบกำลังพาคุณเข้าสอบ...'
+                    : 'รอระบบเปิดและตรวจสอบสิทธิ์อัตโนมัติ'}
             </p>
         </div>
     </div>
@@ -2207,7 +2365,7 @@ useEffect(() => {
                                                 if(confirm(`ยืนยันส่งกระดาษคำตอบ?\nคุณตอบไปแล้ว ${currentExamSet.questions.filter(q => answers[q.id] !== undefined).length} จาก ${currentExamSet.questions.length} ข้อ`)) 
                                                     submitExam('Manual Submit');
                                             }} 
-                                            className="hidden md:flex px-4 py-2 bg-red-600 text-white rounded-xl font-black text-xs uppercase items-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-sm"
+                                            className="flex px-4 py-2 bg-red-600 text-white rounded-xl font-black text-xs uppercase items-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-sm"
                                         >
                                             <Send size={14}/> ส่งข้อสอบ
                                         </button>
@@ -2465,11 +2623,7 @@ useEffect(() => {
     <div className="relative">
         <select 
             value={systemConfig.activeExamSetId || ''} 
-            onChange={e => {
-                const value = e.target.value;
-                console.log('Selected exam set:', value);
-                handleChangeExamSet(value);
-            }} 
+            onChange={e => handleChangeExamSet(e.target.value)} 
             className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
             disabled={!systemConfig.activeSubjectId || currentSubjectExams.length === 0}
         >
@@ -2490,25 +2644,129 @@ useEffect(() => {
 </div>
                                                         <div>
                                                             <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
-                                                                ห้องเรียนที่สอบได้
+                                                                ผู้มีสิทธิ์เข้าสอบ
                                                             </label>
-                                                            <div className="relative">
-                                                                <select 
-                                                                    value={adminClassroomInput} 
-                                                                    onChange={e => setAdminClassroomInput(e.target.value)} 
-                                                                    className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+                                                            <div className="flex gap-2 mb-3">
+                                                                <button
+                                                                    onClick={() => handleSaveFilterConfig('classroom', systemConfig.allowedStudentIds || [])}
+                                                                    className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase transition-all ${systemConfig.filterMode !== 'individual' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
                                                                 >
-                                                                    <option value="All">ทุกห้องเรียน</option>
-                                                                    {availableClassrooms.map(room => (
-                                                                        <option key={room} value={room}>
-                                                                            เฉพาะห้อง {room}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                                    <ChevronDown size={24}/>
-                                                                </div>
+                                                                    กรองตามห้อง
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleSaveFilterConfig('individual', systemConfig.allowedStudentIds || [])}
+                                                                    className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase transition-all ${systemConfig.filterMode === 'individual' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                                                                >
+                                                                    เลือกรายบุคคล
+                                                                </button>
                                                             </div>
+                                                            {systemConfig.filterMode !== 'individual' ? (
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={adminClassroomInput}
+                                                                        onChange={e => setAdminClassroomInput(e.target.value)}
+                                                                        className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
+                                                                    >
+                                                                        <option value="All">ทุกห้องเรียน</option>
+                                                                        {availableClassrooms.map(room => (
+                                                                            <option key={room} value={room}>
+                                                                                เฉพาะห้อง {room}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                        <ChevronDown size={24}/>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="bg-slate-50 rounded-3xl p-4 max-h-52 overflow-y-auto space-y-1">
+                                                                    {dashboardData.length === 0 && (
+                                                                        <p className="text-slate-400 text-xs font-bold text-center py-4">ไม่มีข้อมูลนักเรียน</p>
+                                                                    )}
+                                                                    {availableClassrooms.map(room => (
+                                                                        <div key={room}>
+                                                                            <div className="flex items-center justify-between px-2 py-1">
+                                                                                <span className="text-[10px] font-black text-slate-400 uppercase">ห้อง {room}</span>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        const roomStudents = dashboardData.filter(d => String(d.classroom) === room).map(d => String(d.id));
+                                                                                        const current = systemConfig.allowedStudentIds || [];
+                                                                                        const allSelected = roomStudents.every(id => current.includes(id));
+                                                                                        const updated = allSelected
+                                                                                            ? current.filter(id => !roomStudents.includes(id))
+                                                                                            : [...new Set([...current, ...roomStudents])];
+                                                                                        handleSaveFilterConfig('individual', updated);
+                                                                                    }}
+                                                                                    className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase"
+                                                                                >
+                                                                                    {dashboardData.filter(d => String(d.classroom) === room).every(d => (systemConfig.allowedStudentIds || []).includes(String(d.id))) ? 'ยกเลิกทั้งห้อง' : 'เลือกทั้งห้อง'}
+                                                                                </button>
+                                                                            </div>
+                                                                            {dashboardData.filter(d => String(d.classroom) === room).map(std => (
+                                                                                <label key={std.id} className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-white cursor-pointer transition-all">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={(systemConfig.allowedStudentIds || []).includes(String(std.id))}
+                                                                                        onChange={() => handleToggleAllowedStudent(std.id, systemConfig.allowedStudentIds || [])}
+                                                                                        className="w-4 h-4 accent-slate-900"
+                                                                                    />
+                                                                                    <span className="font-black text-sm">{std.name} {std.surname}</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-mono ml-auto">{std.id}</span>
+                                                                                </label>
+                                                                            ))}
+                                                                        </div>
+                                                                    ))}
+                                                                    {dashboardData.filter(d => !d.classroom || String(d.classroom).trim() === '').map(std => (
+                                                                        <label key={std.id} className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-white cursor-pointer transition-all">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={(systemConfig.allowedStudentIds || []).includes(String(std.id))}
+                                                                                onChange={() => handleToggleAllowedStudent(std.id, systemConfig.allowedStudentIds || [])}
+                                                                                className="w-4 h-4 accent-slate-900"
+                                                                            />
+                                                                            <span className="font-black text-sm">{std.name} {std.surname}</span>
+                                                                            <span className="text-[10px] text-slate-400 font-mono ml-auto">{std.id}</span>
+                                                                        </label>
+                                                                    ))}
+                                                                    <div className="pt-2 text-center text-[10px] text-slate-400 font-bold">
+                                                                        เลือกแล้ว {(systemConfig.allowedStudentIds || []).length} คน
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-5">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                                                    โหมดสอบซ่อม
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => handleSaveMakeupConfig(!systemConfig.isMakeupExam, systemConfig.makeupStudentIds || [])}
+                                                                    className={`relative w-12 h-6 rounded-full transition-all ${systemConfig.isMakeupExam ? 'bg-amber-500' : 'bg-slate-200'}`}
+                                                                >
+                                                                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${systemConfig.isMakeupExam ? 'left-7' : 'left-1'}`}/>
+                                                                </button>
+                                                            </div>
+                                                            <p className="text-[10px] text-amber-600 font-bold mb-3">นักเรียนที่เลือกสามารถสอบซ้ำได้แม้มีคะแนนแล้ว</p>
+                                                            {systemConfig.isMakeupExam && (
+                                                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                                                    {dashboardData.filter(d => d.status === 'COMPLETED').length === 0 && (
+                                                                        <p className="text-xs text-amber-400 font-bold text-center py-2">ยังไม่มีนักเรียนที่สอบเสร็จ</p>
+                                                                    )}
+                                                                    {dashboardData.filter(d => d.status === 'COMPLETED').map(std => (
+                                                                        <label key={std.id} className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-amber-100 cursor-pointer transition-all">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={(systemConfig.makeupStudentIds || []).includes(String(std.id))}
+                                                                                onChange={() => handleToggleMakeupStudent(std.id)}
+                                                                                className="w-4 h-4 accent-amber-500"
+                                                                            />
+                                                                            <span className="font-black text-sm">{std.name} {std.surname}</span>
+                                                                            <span className="text-[10px] text-amber-500 font-mono ml-auto">{std.score}คะแนน</span>
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         
                                                         <div>
@@ -2648,6 +2906,11 @@ useEffect(() => {
                                                                         <span className="text-4xl font-black text-slate-900 leading-none">
                                                                             {d.score ?? '-'}
                                                                         </span>
+                                                                        {classroomRankings[d.id] && (
+                                                                            <span className="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-black mt-1 inline-block">
+                                                                                เลขที่ {classroomRankings[d.id]}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     <span className="text-[10px] font-black text-slate-300 uppercase">
                                                                         ห้อง {d.classroom}
@@ -2675,11 +2938,11 @@ useEffect(() => {
                                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
                                                             รหัสผ่านใหม่
                                                         </label>
-                                                        <input 
-                                                            type="text" 
-                                                            value={newAdminPassword} 
-                                                            onChange={e => setNewAdminPassword(e.target.value)} 
-                                                            className="w-full p-5 border-2 border-slate-50 rounded-2xl outline-none font-black bg-slate-50 focus:bg-white" 
+                                                        <input
+                                                            type="password"
+                                                            value={newAdminPassword}
+                                                            onChange={e => setNewAdminPassword(e.target.value)}
+                                                            className="w-full p-5 border-2 border-slate-50 rounded-2xl outline-none font-black bg-slate-50 focus:bg-white"
                                                             placeholder="รหัสผ่านใหม่"
                                                         />
                                                     </div>
