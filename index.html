@@ -528,6 +528,8 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             });
             const [currentQIdx, setCurrentQIdx] = useState(0); 
             const [timeLeft, setTimeLeft] = useState(0);
+            const [adminExamTimeLeft, setAdminExamTimeLeft] = useState(0);
+            const [isSavingTimeLimit, setIsSavingTimeLimit] = useState(false);
             const [answers, setAnswers] = useState({});
             const answersRef = useRef({}); 
             const [examStatus, setExamStatus] = useState('pending');
@@ -560,6 +562,8 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
             
             const timerRef = useRef(null);
+            const adminExamTimerRef = useRef(null);
+            const autoCloseRef = useRef(false);
             const unsubscribers = useRef([]);
             const submitExamRef = useRef(null);
             const csvInputRef = useRef(null);
@@ -627,6 +631,25 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 const answeredCount = currentExamSet.questions.filter(q => answers[q.id] !== undefined).length;
                 return Math.round((answeredCount / currentExamSet.questions.length) * 100);
             }, [answers, currentExamSet]);
+
+            const formatDuration = (seconds) => {
+                const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+                const hours = Math.floor(safeSeconds / 3600);
+                const minutes = Math.floor((safeSeconds % 3600) / 60);
+                const secs = safeSeconds % 60;
+                if (hours > 0) {
+                    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                }
+                return `${minutes}:${String(secs).padStart(2, '0')}`;
+            };
+
+            const getExamRemainingSeconds = (config) => {
+                if (!config?.isOpen || !config.examStartMs) return 0;
+                const limitSeconds = Math.max(0, Number(config.customTimeLimit) || 0);
+                if (!limitSeconds) return 0;
+                const elapsedSeconds = Math.floor((Date.now() - Number(config.examStartMs)) / 1000);
+                return Math.max(0, limitSeconds - elapsedSeconds);
+            };
 
             const fetchAllData = async () => {
     setLoading(true);
@@ -808,8 +831,58 @@ const handleToggleExam = async (isOpen) => {
         console.error("Toggle Error:", err);
         showToast('ไม่สามารถเปลี่ยนสถานะได้: ' + err.message, 'error');
     }
-    setLoading(false);
-};
+	    setLoading(false);
+	};
+
+            const handleSaveTimeLimit = async () => {
+                const minutes = parseInt(adminTimeLimitInput, 10);
+                if (isNaN(minutes) || minutes <= 0) {
+                    showToast('กรุณาระบุเวลาสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+                    return;
+                }
+
+                setIsSavingTimeLimit(true);
+                try {
+                    const updateData = {
+                        customTimeLimit: minutes * 60
+                    };
+
+                    if (systemConfig.isOpen && !systemConfig.examStartMs) {
+                        updateData.examStartMs = Date.now();
+                    }
+
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
+                    setSystemConfig(prev => ({ ...prev, ...updateData }));
+                    showToast(`บันทึกเวลาสอบ ${minutes} นาทีเรียบร้อย`);
+                } catch (err) {
+                    showToast('ไม่สามารถบันทึกเวลาได้: ' + err.message, 'error');
+                }
+                setIsSavingTimeLimit(false);
+            };
+
+            const autoCloseExpiredExam = useCallback(async () => {
+                if (autoCloseRef.current || !systemConfig.isOpen) return;
+                autoCloseRef.current = true;
+                setLoading(true);
+                setLoadingMessage('หมดเวลาสอบ กำลังปิดระบบสอบ...');
+                try {
+                    const updateData = {
+                        isOpen: false,
+                        examStartMs: 0,
+                        examOpenedAt: '',
+                        examClosedAt: new Date().toISOString(),
+                        closeReason: 'TIME_LIMIT_EXPIRED'
+                    };
+                    await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
+                    setSystemConfig(prev => ({ ...prev, ...updateData }));
+                    setAdminExamTimeLeft(0);
+                    showToast('หมดเวลาสอบ ระบบปิดการเข้าสอบอัตโนมัติแล้ว');
+                } catch (err) {
+                    autoCloseRef.current = false;
+                    showToast('ปิดระบบสอบอัตโนมัติไม่สำเร็จ: ' + err.message, 'error');
+                }
+                setLoading(false);
+            }, [systemConfig.isOpen, showToast]);
 
             const handleChangeAdminPassword = async () => {
                 if (!newAdminPassword || newAdminPassword.length < 4) {
@@ -1589,6 +1662,42 @@ useEffect(() => {
 
     autoRedirect();
 }, [systemConfig.isOpen, systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.activeClassroom, systemConfig.filterMode, systemConfig.allowedStudentIds, systemConfig.isMakeupExam, systemConfig.makeupStudentIds, step, student]);
+
+            useEffect(() => {
+                if (adminExamTimerRef.current) {
+                    clearInterval(adminExamTimerRef.current);
+                    adminExamTimerRef.current = null;
+                }
+
+                if (step !== 'admin_dashboard' || !systemConfig.isOpen) {
+                    autoCloseRef.current = false;
+                    setAdminExamTimeLeft(0);
+                    return;
+                }
+
+                const updateAdminCountdown = () => {
+                    const remaining = getExamRemainingSeconds(systemConfig);
+                    setAdminExamTimeLeft(remaining);
+                    if (remaining <= 0) autoCloseExpiredExam();
+                };
+
+                autoCloseRef.current = false;
+                updateAdminCountdown();
+                adminExamTimerRef.current = setInterval(updateAdminCountdown, 1000);
+
+                return () => {
+                    if (adminExamTimerRef.current) {
+                        clearInterval(adminExamTimerRef.current);
+                        adminExamTimerRef.current = null;
+                    }
+                };
+            }, [
+                step,
+                systemConfig.isOpen,
+                systemConfig.examStartMs,
+                systemConfig.customTimeLimit,
+                autoCloseExpiredExam
+            ]);
             // Anti-Cheat
             useEffect(() => {
                 if (step !== 'exam' || examStatus !== 'active') return;
@@ -1655,13 +1764,17 @@ useEffect(() => {
             // sync เวลาสอบใน input ให้ตรงกับชุดข้อสอบที่เลือก
             useEffect(() => {
                 if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
+                    if (systemConfig.customTimeLimit) {
+                        setAdminTimeLimitInput(systemConfig.customTimeLimit / 60);
+                        return;
+                    }
                     const sets = examSets[systemConfig.activeSubjectId] || [];
                     const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
                     if (selectedSet) {
                         setAdminTimeLimitInput(selectedSet.timeLimit / 60);
                     }
                 }
-            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, examSets]);
+            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.customTimeLimit, examSets]);
 
 
             // Manage Students Tab
@@ -2780,6 +2893,30 @@ useEffect(() => {
                                                                 className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl shadow-inner" 
                                                                 min="1"
                                                             />
+                                                            <button
+                                                                onClick={handleSaveTimeLimit}
+                                                                disabled={isSavingTimeLimit}
+                                                                className="mt-3 w-full py-4 bg-blue-50 text-blue-700 border-2 border-blue-100 rounded-2xl font-black text-xs uppercase hover:bg-blue-100 transition-all disabled:opacity-50"
+                                                            >
+                                                                {isSavingTimeLimit ? 'กำลังบันทึก...' : 'บันทึกเวลา'}
+                                                            </button>
+                                                            {systemConfig.isOpen && (
+                                                                <div className={`mt-4 p-5 rounded-3xl border-2 text-center ${
+                                                                    adminExamTimeLeft <= 300
+                                                                        ? 'bg-red-50 border-red-100 text-red-600'
+                                                                        : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                                                                }`}>
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest mb-1">
+                                                                        เหลือเวลาเปิดสอบ
+                                                                    </p>
+                                                                    <p className="text-4xl font-mono font-black leading-none">
+                                                                        {formatDuration(adminExamTimeLeft)}
+                                                                    </p>
+                                                                    <p className="text-[10px] font-bold opacity-70 mt-2">
+                                                                        ครบเวลาแล้วระบบจะปิดการเข้าสอบอัตโนมัติ
+                                                                    </p>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2792,7 +2929,12 @@ useEffect(() => {
                                                             </h4>
                                                             <div className="pt-6 border-t border-white/10 space-y-3">
                                                                 <p className="text-xs opacity-60">จำนวนข้อ: {selectedExamPreview.questions?.length || 0} ข้อ</p>
-                                                                <p className="text-xs opacity-60">เวลา: {selectedExamPreview.timeLimit / 60} นาที</p>
+                                                                <p className="text-xs opacity-60">เวลา: {(systemConfig.customTimeLimit || selectedExamPreview.timeLimit) / 60} นาที</p>
+                                                                {systemConfig.isOpen && (
+                                                                    <p className="text-xs font-black text-emerald-300">
+                                                                        เหลือเวลาเปิดสอบ: {formatDuration(adminExamTimeLeft)}
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                             <button 
                                                                 onClick={() => handleToggleExam(!systemConfig.isOpen)} 
