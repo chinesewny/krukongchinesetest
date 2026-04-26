@@ -104,14 +104,14 @@
             options: q.options.map(opt => opt), // เก็บตามเดิม
             passage: q.passage ? q.passage : ''
         };
-        
+
         // เรียงตัวเลือกใหม่ให้สวยงาม (ให้มีครบ 4 ตัวเลือก)
         const validOptions = formatted.options.filter(opt => opt !== '');
         while (validOptions.length < 4) {
             validOptions.push('');
         }
         formatted.options = validOptions;
-        
+
         return formatted;
     });
 };
@@ -147,11 +147,11 @@ d. option d
 ค. ตัวเลือก 3
 ง. ตัวเลือก 4
 
-หมายเหตุ: 
+หมายเหตุ:
 - แต่ละข้อต้องขึ้นต้นด้วยตัวเลขและจุด (1. 2. 3.)
 - ตัวเลือกต้องขึ้นต้นด้วย ก. ข. ค. ง. หรือ a. b. c. d. หรือ 1. 2. 3. 4.
 - บทอ่านจะอยู่ก่อนคำถาม`;
-            
+
             alert(example);
         };
 
@@ -214,7 +214,7 @@ d. option d
             }, [onClose]);
 
             const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-            
+
             return (
                 <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-xl shadow-lg z-[9999] animate-fade-in`}>
                     <div className="flex items-center gap-2">
@@ -266,7 +266,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                     <div>
                         <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={24} className="text-blue-600"/> ตรวจสอบข้อสอบ</h3>
                         <p className="text-sm text-slate-500 mt-1">
-                            {exam.id} - {exam.title} 
+                            {exam.id} - {exam.title}
                             {examSet && <span className="ml-2 text-blue-600">(ชุดที่ {examSet.setId})</span>}
                         </p>
                     </div>
@@ -291,14 +291,14 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                                     // ดึงเฉพาะตัวอักษรนำหน้า (A, B, C, D) และข้อความ
                                     let optionLetter = String.fromCharCode(65 + oIdx); // A, B, C, D
                                     let optionText = opt;
-                                    
+
                                     // ถ้าตัวเลือกมีรูปแบบ A. ข้อความ ให้แยก
                                     const optionMatch = opt.match(/^([A-D])\.\s*(.+)/);
                                     if (optionMatch) {
                                         optionLetter = optionMatch[1];
                                         optionText = optionMatch[2];
                                     }
-                                    
+
                                     return (
                                         <div key={oIdx} className={`p-3 rounded-xl border flex items-center gap-3 ${oIdx === q.correct ? 'bg-green-100 border-green-300 text-green-800 font-bold' : 'bg-white text-slate-600 border-slate-200'}`}>
                                             <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-xs font-bold">{optionLetter}</span>
@@ -318,8 +318,8 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
     );
 };
         const EditExamModal = ({ exam, examSet, onClose, onSave }) => {
-            const [data, setData] = useState({ 
-                title: exam.title, 
+            const [data, setData] = useState({
+                title: exam.title,
                 time: exam.timeLimit / 60,
                 setId: examSet?.setId || 1
             });
@@ -340,14 +340,14 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             };
 
             const addQuestion = () => {
-                setQuestions([...questions, { 
-                    id: Date.now() + Math.random(), 
-                    text: '', 
-                    options: ['', '', '', ''], 
-                    correct: 0, 
-                    sectionTitle: '', 
-                    passage: '', 
-                    passagePosition: 'top' 
+                setQuestions([...questions, {
+                    id: Date.now() + Math.random(),
+                    text: '',
+                    options: ['', '', '', ''],
+                    correct: 0,
+                    sectionTitle: '',
+                    passage: '',
+                    passagePosition: 'top'
                 }]);
             };
 
@@ -440,11 +440,11 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
         };
 
         const EditStudentModal = ({ student, onClose, onSave }) => {
-            const [data, setData] = useState({ 
-                id: student?.id || '', 
-                name: student?.name || '', 
-                surname: student?.surname || '', 
-                classroom: student?.classroom || '' 
+            const [data, setData] = useState({
+                id: student?.id || '',
+                name: student?.name || '',
+                surname: student?.surname || '',
+                classroom: student?.classroom || ''
             });
 
             return (
@@ -492,7 +492,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
 
         // --- 5. Main App Component ---
         const SecureExamApp = () => {
-            const [step, setStep] = useState('login'); 
+            const [step, setStep] = useState('login');
             const [student, setStudent] = useState(null);
             const [studentIdInput, setStudentIdInput] = useState('');
             const [adminPassword, setAdminPassword] = useState('');
@@ -501,14 +501,15 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const [currentSubject, setCurrentSubject] = useState(null);
             const [currentExamSet, setCurrentExamSet] = useState(null);
             const [adminTab, setAdminTab] = useState('dashboard');
-            const [adminTimeLimitInput, setAdminTimeLimitInput] = useState(5); 
+            const [adminOpenWindowInput, setAdminOpenWindowInput] = useState(5);
+            const [adminExamDurationInput, setAdminExamDurationInput] = useState(60);
             const [adminClassroomInput, setAdminClassroomInput] = useState('All');
-            const [monitorFilterRoom, setMonitorFilterRoom] = useState('All'); 
+            const [monitorFilterRoom, setMonitorFilterRoom] = useState('All');
             const [dashboardData, setDashboardData] = useState([]);
             const [alreadySubmittedData, setAlreadySubmittedData] = useState(null);
-            const [editingExam, setEditingExam] = useState(null); 
+            const [editingExam, setEditingExam] = useState(null);
             const [editingExamSet, setEditingExamSet] = useState(null);
-            const [viewingExam, setViewingExam] = useState(null); 
+            const [viewingExam, setViewingExam] = useState(null);
             const [viewingExamSet, setViewingExamSet] = useState(null);
             const [editingStudent, setEditingStudent] = useState(null);
             const [finalResult, setFinalResult] = useState({ score: 0, total: 0 });
@@ -517,6 +518,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 activeExamSetId: 1,
                 isOpen: false,
                 customTimeLimit: 0,
+                examDurationLimit: 0,
                 activeClassroom: 'All',
                 examOpenedAt: '',
                 examStartMs: 0,
@@ -526,41 +528,41 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 isMakeupExam: false,
                 makeupStudentIds: []
             });
-            const [currentQIdx, setCurrentQIdx] = useState(0); 
+            const [currentQIdx, setCurrentQIdx] = useState(0);
             const [timeLeft, setTimeLeft] = useState(0);
             const [adminExamTimeLeft, setAdminExamTimeLeft] = useState(0);
             const [isSavingTimeLimit, setIsSavingTimeLimit] = useState(false);
             const [answers, setAnswers] = useState({});
-            const answersRef = useRef({}); 
+            const answersRef = useRef({});
             const [examStatus, setExamStatus] = useState('pending');
             const [loading, setLoading] = useState(false);
-            const [loadingMessage, setLoadingMessage] = useState(''); 
+            const [loadingMessage, setLoadingMessage] = useState('');
             const [error, setError] = useState('');
             const [warningCount, setWarningCount] = useState(0);
             const [isBlackout, setIsBlackout] = useState(false);
             const [newAdminPassword, setNewAdminPassword] = useState('');
             const [adminGlobalPassword, setAdminGlobalPassword] = useState('admin1234');
-            
+
             const [newSubject, setNewSubject] = useState({ id: '', title: '' });
-            const [newExamSet, setNewExamSet] = useState({ 
-                setId: 1, 
-                title: '', 
+            const [newExamSet, setNewExamSet] = useState({
+                setId: 1,
+                title: '',
                 time: 60,
-                questions: [] 
+                questions: []
             });
-            const [qDraft, setQDraft] = useState({ 
-                text: '', 
-                options: ['', '', '', ''], 
-                correct: 0, 
-                sectionTitle: '', 
-                passage: '', 
-                passagePosition: 'top' 
+            const [qDraft, setQDraft] = useState({
+                text: '',
+                options: ['', '', '', ''],
+                correct: 0,
+                sectionTitle: '',
+                passage: '',
+                passagePosition: 'top'
             });
             const [selectedSubjectId, setSelectedSubjectId] = useState('');
-            
+
             const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, type: '', itemId: null, setId: null });
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-            
+
             const timerRef = useRef(null);
             const adminExamTimerRef = useRef(null);
             const autoCloseRef = useRef(false);
@@ -660,7 +662,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             ...d.data()
         }));
         setSubjects(subjectsData);
-        
+
         const examSetsData = {};
         for (const subject of subjectsData) {
             const setsSnap = await window.fb.getDocs(
@@ -672,7 +674,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             })).sort((a, b) => a.setId - b.setId);
         }
         setExamSets(examSetsData);
-        
+
         // ตรวจสอบว่า activeSubjectId ยังมีอยู่ใน subjects หรือไม่
         if (systemConfig.activeSubjectId) {
             const subjectExists = subjectsData.some(s => s.id === systemConfig.activeSubjectId);
@@ -683,10 +685,10 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 });
             }
         }
-        
+
         setLoading(false);
         return { subjects: subjectsData, examSets: examSetsData };
-    } catch (err) { 
+    } catch (err) {
         console.error('Error fetching data:', err);
         setLoading(false);
         showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, 'error');
@@ -697,7 +699,7 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
             const exportToCSV = useCallback(() => {
                 const filterRoom = monitorFilterRoom;
                 const filtered = dashboardData.filter(d => filterRoom === 'All' || String(d.classroom).trim() === filterRoom.trim());
-                
+
                 if (filtered.length === 0) {
                     showToast('ไม่มีข้อมูลสำหรับการส่งออก', 'error');
                     return;
@@ -721,13 +723,13 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
-                link.href = url; 
+                link.href = url;
                 link.download = `${subjectTitle}_${examSetTitle}_${Date.now()}.csv`;
                 document.body.appendChild(link);
-                link.click(); 
+                link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-                
+
                 showToast('ส่งออกรายงานสำเร็จ');
             }, [dashboardData, monitorFilterRoom, systemConfig.activeSubjectId, systemConfig.activeExamSetId, selectedExamPreview, subjects, showToast]);
 
@@ -778,21 +780,26 @@ const ViewExamModal = ({ exam, examSet, onClose }) => {
 
 const handleToggleExam = async (isOpen) => {
     // 1. ตรวจสอบความพร้อมเบื้องต้น
-    if (isOpen) {
-        if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) {
-            showToast('กรุณาเลือกวิชาและชุดข้อสอบให้ครบถ้วนก่อนเปิดสอบ', 'error');
-            return;
-        }
-        const timeLimit = parseInt(adminTimeLimitInput);
-        if (isNaN(timeLimit) || timeLimit <= 0) {
-            showToast('กรุณาระบุเวลาสอบเป็นตัวเลขที่ถูกต้อง', 'error');
-            return;
-        }
-    }
+	    if (isOpen) {
+	        if (!systemConfig.activeSubjectId || !systemConfig.activeExamSetId) {
+	            showToast('กรุณาเลือกวิชาและชุดข้อสอบให้ครบถ้วนก่อนเปิดสอบ', 'error');
+	            return;
+	        }
+	        const openWindowMinutes = parseInt(adminOpenWindowInput, 10);
+	        const examDurationMinutes = parseInt(adminExamDurationInput, 10);
+	        if (isNaN(openWindowMinutes) || openWindowMinutes <= 0) {
+	            showToast('กรุณาระบุเวลาเปิดให้เข้าสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+	            return;
+	        }
+	        if (isNaN(examDurationMinutes) || examDurationMinutes <= 0) {
+	            showToast('กรุณาระบุเวลาทำข้อสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+	            return;
+	        }
+	    }
 
     setLoading(true);
     setLoadingMessage(isOpen ? 'กำลังเปิดระบบสอบ...' : 'กำลังปิดระบบสอบ...');
-    
+
     try {
         // 2. กรณีปิดสอบ: ตรวจสอบนักเรียนที่ยังสอบไม่เสร็จ
         if (!isOpen && systemConfig.activeSubjectId) {
@@ -810,24 +817,27 @@ const handleToggleExam = async (isOpen) => {
                 }
             }
         }
-        
-        // 3. เตรียมข้อมูลที่จะบันทึก (ป้องกันค่าเสียหาย)
-        const updateData = {
-            isOpen: !!isOpen, 
-            customTimeLimit: (parseInt(adminTimeLimitInput) || 60) * 60, 
-            activeClassroom: adminClassroomInput || 'All',
-            examOpenedAt: isOpen ? new Date().toLocaleString('th-TH') : '', 
-            examStartMs: isOpen ? Date.now() : 0
+
+	        // 3. เตรียมข้อมูลที่จะบันทึก (ป้องกันค่าเสียหาย)
+	        const openWindowMinutes = parseInt(adminOpenWindowInput, 10) || 60;
+	        const examDurationMinutes = parseInt(adminExamDurationInput, 10) || openWindowMinutes;
+	        const updateData = {
+	            isOpen: !!isOpen,
+	            customTimeLimit: openWindowMinutes * 60,
+	            examDurationLimit: examDurationMinutes * 60,
+	            activeClassroom: adminClassroomInput || 'All',
+	            examOpenedAt: isOpen ? new Date().toLocaleString('th-TH') : '',
+	            examStartMs: isOpen ? Date.now() : 0
         };
 
         // 4. บันทึกลง Firestore
         await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
-        
+
         // 5. อัปเดต Local State ทันทีเพื่อให้ปุ่มเปลี่ยนสีทันใจ
         setSystemConfig(prev => ({ ...prev, ...updateData }));
-        
+
         showToast(`ระบบสอบ ${isOpen ? 'เปิด' : 'ปิด'} เรียบร้อยแล้ว`);
-    } catch (err) { 
+    } catch (err) {
         console.error("Toggle Error:", err);
         showToast('ไม่สามารถเปลี่ยนสถานะได้: ' + err.message, 'error');
     }
@@ -835,16 +845,22 @@ const handleToggleExam = async (isOpen) => {
 	};
 
             const handleSaveTimeLimit = async () => {
-                const minutes = parseInt(adminTimeLimitInput, 10);
-                if (isNaN(minutes) || minutes <= 0) {
-                    showToast('กรุณาระบุเวลาสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+                const openWindowMinutes = parseInt(adminOpenWindowInput, 10);
+                const examDurationMinutes = parseInt(adminExamDurationInput, 10);
+                if (isNaN(openWindowMinutes) || openWindowMinutes <= 0) {
+                    showToast('กรุณาระบุเวลาเปิดให้เข้าสอบเป็นตัวเลขที่ถูกต้อง', 'error');
+                    return;
+                }
+                if (isNaN(examDurationMinutes) || examDurationMinutes <= 0) {
+                    showToast('กรุณาระบุเวลาทำข้อสอบเป็นตัวเลขที่ถูกต้อง', 'error');
                     return;
                 }
 
                 setIsSavingTimeLimit(true);
                 try {
                     const updateData = {
-                        customTimeLimit: minutes * 60
+                        customTimeLimit: openWindowMinutes * 60,
+                        examDurationLimit: examDurationMinutes * 60
                     };
 
                     if (systemConfig.isOpen && !systemConfig.examStartMs) {
@@ -853,9 +869,9 @@ const handleToggleExam = async (isOpen) => {
 
                     await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
                     setSystemConfig(prev => ({ ...prev, ...updateData }));
-                    showToast(`บันทึกเวลาสอบ ${minutes} นาทีเรียบร้อย`);
+                    showToast(`บันทึกเวลาเข้าสอบ ${openWindowMinutes} นาที และเวลาทำข้อสอบ ${examDurationMinutes} นาทีเรียบร้อย`);
                 } catch (err) {
-                    showToast('ไม่สามารถบันทึกเวลาได้: ' + err.message, 'error');
+                    showToast('ไม่สามารถบันทึกการตั้งค่าเวลาได้: ' + err.message, 'error');
                 }
                 setIsSavingTimeLimit(false);
             };
@@ -863,8 +879,8 @@ const handleToggleExam = async (isOpen) => {
             const autoCloseExpiredExam = useCallback(async () => {
                 if (autoCloseRef.current || !systemConfig.isOpen) return;
                 autoCloseRef.current = true;
-                setLoading(true);
-                setLoadingMessage('หมดเวลาสอบ กำลังปิดระบบสอบ...');
+	                setLoading(true);
+	                setLoadingMessage('หมดเวลาเปิดให้เข้าสอบ กำลังปิดระบบสอบ...');
                 try {
                     const updateData = {
                         isOpen: false,
@@ -874,9 +890,9 @@ const handleToggleExam = async (isOpen) => {
                         closeReason: 'TIME_LIMIT_EXPIRED'
                     };
                     await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
-                    setSystemConfig(prev => ({ ...prev, ...updateData }));
-                    setAdminExamTimeLeft(0);
-                    showToast('หมดเวลาสอบ ระบบปิดการเข้าสอบอัตโนมัติแล้ว');
+	                    setSystemConfig(prev => ({ ...prev, ...updateData }));
+	                    setAdminExamTimeLeft(0);
+	                    showToast('หมดเวลาเปิดให้เข้าสอบ ระบบปิดการสอบอัตโนมัติแล้ว');
                 } catch (err) {
                     autoCloseRef.current = false;
                     showToast('ปิดระบบสอบอัตโนมัติไม่สำเร็จ: ' + err.message, 'error');
@@ -889,14 +905,14 @@ const handleToggleExam = async (isOpen) => {
                     showToast("รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร", 'error');
                     return;
                 }
-                
+
                 setLoading(true);
                 try {
                     await window.fb.setDoc(window.fb.doc(window.db, "config", "admin"), { password: newAdminPassword });
                     setAdminGlobalPassword(newAdminPassword);
                     showToast("เปลี่ยนรหัสผ่านแอดมินสำเร็จ");
                     setNewAdminPassword('');
-                } catch (err) { 
+                } catch (err) {
                     showToast("เกิดข้อผิดพลาด: " + err.message, 'error');
                 }
                 setLoading(false);
@@ -960,17 +976,18 @@ const handleChangeSubject = async (subjectId) => {
         const firstSetId = sets.length > 0 ? Number(sets[0].setId) : 1;
         const firstTimeLimit = sets.length > 0 ? (sets[0].timeLimit / 60) : 60;
 
-        const updateData = { 
+        const updateData = {
             activeSubjectId: subjectId,
-            activeExamSetId: firstSetId 
+            activeExamSetId: firstSetId
         };
 
         await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), updateData);
-        
-        // อัปเดต State ทันทีเพื่อป้องกัน UI กระโดดกลับ
-        setSystemConfig(prev => ({ ...prev, ...updateData }));
-        setAdminTimeLimitInput(firstTimeLimit);
-        
+
+	        // อัปเดต State ทันทีเพื่อป้องกัน UI กระโดดกลับ
+	        setSystemConfig(prev => ({ ...prev, ...updateData }));
+	        setAdminOpenWindowInput(firstTimeLimit);
+	        setAdminExamDurationInput(firstTimeLimit);
+
         showToast(`สลับเป็นวิชา ${subjectId} เรียบร้อย`);
     } catch (err) {
         showToast('Error: ' + err.message, 'error');
@@ -983,20 +1000,21 @@ const handleChangeExamSet = async (setId) => {
     const setIdNum = Number(setId); // บังคับเป็นตัวเลข
     setLoading(true);
     try {
-        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), { 
-            activeExamSetId: setIdNum 
+        await window.fb.updateDoc(window.fb.doc(window.db, "config", "system"), {
+            activeExamSetId: setIdNum
         });
-        
+
         // อัปเดต Local State ทันที
         setSystemConfig(prev => ({ ...prev, activeExamSetId: setIdNum }));
-        
+
         // อัปเดตเวลาตามชุดที่เลือก
         const sets = examSets[systemConfig.activeSubjectId] || [];
-        const selectedSet = sets.find(s => Number(s.setId) === setIdNum);
-        if (selectedSet) {
-            setAdminTimeLimitInput(selectedSet.timeLimit / 60);
-        }
-        
+	        const selectedSet = sets.find(s => Number(s.setId) === setIdNum);
+	        if (selectedSet) {
+	            setAdminOpenWindowInput(selectedSet.timeLimit / 60);
+	            setAdminExamDurationInput(selectedSet.timeLimit / 60);
+	        }
+
         showToast('เปลี่ยนชุดข้อสอบเรียบร้อย');
     } catch (err) {
         showToast(err.message, 'error');
@@ -1007,10 +1025,10 @@ const handleChangeExamSet = async (setId) => {
 const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setLoading(true);
     setLoadingMessage('กำลังอ่านไฟล์...');
-    
+
     try {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
@@ -1108,11 +1126,11 @@ const handleFileSelect = async (e) => {
 
         // จัดรูปแบบข้อสอบ (เติมตัวเลือกให้ครบ 4 ช่องถ้าขาด)
         const formattedQuestions = formatImportedQuestions(newQuestionsTemp);
-        
+
         // แสดงตัวอย่างการนำเข้า
         if (formattedQuestions.length > 0) {
             let previewMessage = `📋 พบข้อสอบทั้งหมด ${formattedQuestions.length} ข้อ\n\n`;
-            
+
             formattedQuestions.slice(0, 1).forEach((q, idx) => {
                 previewMessage += `ข้อ ${idx + 1}:\n${q.text}\n\n`;
                 previewMessage += `ตัวเลือก:\n`;
@@ -1121,11 +1139,11 @@ const handleFileSelect = async (e) => {
                 });
                 previewMessage += `   ✅ เฉลย: ${String.fromCharCode(65 + q.correct)}\n\n`;
             });
-            
+
             if (formattedQuestions.length > 1) {
                 previewMessage += `... และอีก ${formattedQuestions.length - 1} ข้อ\n\n`;
             }
-            
+
             if (confirm(previewMessage + '\n\nต้องการนำเข้าข้อสอบทั้งหมดนี้หรือไม่?')) {
                 setNewExamSet(prev => ({
                     ...prev,
@@ -1141,12 +1159,12 @@ const handleFileSelect = async (e) => {
                 showFileFormatExample();
             }, 1000);
         }
-        
+
     } catch (err) {
         console.error(err);
         showToast('❌ เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, 'error');
     }
-    
+
     setLoading(false);
     e.target.value = '';
 };
@@ -1156,31 +1174,31 @@ const handleFileSelect = async (e) => {
                     showToast('กรุณากรอกโจทย์', 'error');
                     return;
                 }
-                
+
                 const validOptions = qDraft.options.filter(o => o && o.trim());
                 if (validOptions.length < 2) {
                     showToast('กรุณากรอกตัวเลือกอย่างน้อย 2 ตัวเลือก', 'error');
                     return;
                 }
-                
+
                 setNewExamSet(prev => ({
                     ...prev,
-                    questions: [...prev.questions, { 
-                        ...qDraft, 
+                    questions: [...prev.questions, {
+                        ...qDraft,
                         id: Date.now() + Math.random(),
                         options: qDraft.options.map(o => o.trim())
                     }]
                 }));
-                
-                setQDraft({ 
-                    text: '', 
-                    options: ['', '', '', ''], 
-                    correct: 0, 
-                    sectionTitle: '', 
-                    passage: '', 
-                    passagePosition: 'top' 
+
+                setQDraft({
+                    text: '',
+                    options: ['', '', '', ''],
+                    correct: 0,
+                    sectionTitle: '',
+                    passage: '',
+                    passagePosition: 'top'
                 });
-                
+
                 showToast('เพิ่มข้อสอบเรียบร้อย');
             };
 
@@ -1198,10 +1216,10 @@ const handleFileSelect = async (e) => {
                     showToast('กรุณากรอกชื่อวิชา', 'error');
                     return;
                 }
-                
+
                 setLoading(true);
                 setLoadingMessage('กำลังบันทึกวิชา...');
-                
+
                 try {
                     const existing = await window.fb.getDoc(window.fb.doc(window.db, "subjects", newSubject.id.trim()));
                     if (existing.exists()) {
@@ -1209,22 +1227,22 @@ const handleFileSelect = async (e) => {
                         setLoading(false);
                         return;
                     }
-                    
+
                     await window.fb.setDoc(
-                        window.fb.doc(window.db, "subjects", newSubject.id.trim()), 
+                        window.fb.doc(window.db, "subjects", newSubject.id.trim()),
                         {
                             title: newSubject.title.trim(),
                             createdAt: new Date().toISOString()
                         }
                     );
-                    
+
                     showToast('สร้างวิชาเรียบร้อย');
                     setNewSubject({ id: '', title: '' });
                     await fetchAllData();
                 } catch (err) {
                     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 }
-                
+
                 setLoading(false);
             };
 
@@ -1241,17 +1259,17 @@ const handleFileSelect = async (e) => {
                     showToast('กรุณาเพิ่มข้อสอบอย่างน้อย 1 ข้อ', 'error');
                     return;
                 }
-                
+
                 setLoading(true);
                 setLoadingMessage('กำลังบันทึกชุดข้อสอบ...');
-                
+
                 try {
                     const existingSets = examSets[selectedSubjectId] || [];
                     const maxSetId = existingSets.length > 0 ? Math.max(...existingSets.map(s => s.setId)) : 0;
                     const newSetId = maxSetId + 1;
-                    
+
                     await window.fb.setDoc(
-                        window.fb.doc(window.db, "subjects", selectedSubjectId, "examSets", newSetId.toString()), 
+                        window.fb.doc(window.db, "subjects", selectedSubjectId, "examSets", newSetId.toString()),
                         {
                             title: newExamSet.title.trim(),
                             timeLimit: newExamSet.time * 60,
@@ -1259,13 +1277,13 @@ const handleFileSelect = async (e) => {
                             createdAt: new Date().toISOString()
                         }
                     );
-                    
+
                     showToast('สร้างชุดข้อสอบสำเร็จ');
-                    setNewExamSet({ 
-                        setId: 1, 
-                        title: '', 
+                    setNewExamSet({
+                        setId: 1,
+                        title: '',
                         time: 60,
-                        questions: [] 
+                        questions: []
                     });
                     setSelectedSubjectId('');
                     setQDraft({ text: '', options: ['', '', '', ''], correct: 0, sectionTitle: '', passage: '', passagePosition: 'top' });
@@ -1273,7 +1291,7 @@ const handleFileSelect = async (e) => {
                 } catch (err) {
                     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 }
-                
+
                 setLoading(false);
             };
 
@@ -1281,71 +1299,71 @@ const handleFileSelect = async (e) => {
                 const sets = examSets[subjectId] || [];
                 // ใช้ Number() ทั้งสองฝั่งป้องกัน string vs number mismatch
                 const selectedSet = sets.find(s => Number(s.setId) === Number(setId));
-                
+
                 if (!selectedSet) return;
-                
+
                 let processed = JSON.parse(JSON.stringify(selectedSet));
                 const hasStructure = processed.questions.some(q => q.sectionTitle || q.passage);
                 if (!hasStructure) processed.questions = shuffleArray(processed.questions);
-                
+
                 processed.questions = processed.questions.map(q => {
                     const opts = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.correct }));
                     const shuffled = shuffleArray(opts);
-                    return { 
-                        ...q, 
-                        options: shuffled.map(o => o.text), 
-                        correct: shuffled.findIndex(o => o.isCorrect) 
+                    return {
+                        ...q,
+                        options: shuffled.map(o => o.text),
+                        correct: shuffled.findIndex(o => o.isCorrect)
                     };
                 });
-                
-                setCurrentExamSet({ 
-                    ...processed, 
-                    timeLimit: systemConfig.customTimeLimit || processed.timeLimit 
-                });
-                
+
+	                setCurrentExamSet({
+	                    ...processed,
+	                    timeLimit: systemConfig.examDurationLimit || processed.timeLimit
+	                });
+
                 const subject = subjects.find(s => s.id === subjectId);
                 setCurrentSubject(subject);
-            }, [examSets, subjects, systemConfig.customTimeLimit]);
+	            }, [examSets, subjects, systemConfig.examDurationLimit]);
 
             const submitExam = useCallback(async (reason = 'Normal', isCheat = false) => {
-    if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted', 'หมดเวลา'].includes(reason)) return;
-    
+    if (examStatus !== 'active' && !['TimeOut', 'Manual Submit', 'User Submitted', 'หมดเวลา', 'หมดเวลาเปิดระบบ'].includes(reason)) return;
+
     clearInterval(timerRef.current);
-    setLoading(true); 
+    setLoading(true);
     setLoadingMessage('กำลังบันทึกคะแนน...');
-    
+
     let score = 0;
     if (currentExamSet && currentExamSet.questions) {
-        currentExamSet.questions.forEach(q => { 
-            if(answersRef.current[q.id] === q.correct) score++; 
+        currentExamSet.questions.forEach(q => {
+            if(answersRef.current[q.id] === q.correct) score++;
         });
     }
-    
+
     try {
         await window.fb.setDoc(
-            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
+            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`),
             {
-                studentId: student.id, 
-                studentName: `${student.name} ${student.surname}`, 
+                studentId: student.id,
+                studentName: `${student.name} ${student.surname}`,
                 subjectId: currentSubject.id,
                 subjectTitle: currentSubject.title,
                 examSetId: Number(currentExamSet.setId),
                 examSetTitle: currentExamSet.title,
-                score: score, 
-                totalScore: currentExamSet.questions.length, 
-                status: isCheat ? 'CHEATED' : 'COMPLETED', 
-                reason, 
+                score: score,
+                totalScore: currentExamSet.questions.length,
+                status: isCheat ? 'CHEATED' : 'COMPLETED',
+                reason,
                 submittedAt: new Date().toISOString()
             },
             { merge: true }
         );
-        
+
         // --- เปลี่ยนตรงนี้: บันทึกคะแนนลง State และเปลี่ยน Step ---
         setFinalResult({ score: score, total: currentExamSet.questions.length });
         setStep('result');
         showToast(`ส่งกระดาษคำตอบเรียบร้อยแล้ว`);
-        
-    } catch (err) { 
+
+    } catch (err) {
         showToast('เกิดข้อผิดพลาดในการส่งคำตอบ', 'error');
     }
     setLoading(false);
@@ -1354,10 +1372,10 @@ const handleFileSelect = async (e) => {
             submitExamRef.current = submitExam;
 
           const handleStudentLogin = async (e) => {
-    e.preventDefault(); 
-    setLoading(true); 
+    e.preventDefault();
+    setLoading(true);
     setError('');
-    
+
     try {
         const inputId = studentIdInput.trim();
         if (!inputId) {
@@ -1365,19 +1383,20 @@ const handleFileSelect = async (e) => {
             setLoading(false);
             return;
         }
-        
+
         const snap = await window.fb.getDoc(window.fb.doc(window.db, "students", inputId));
-        
+
         if (snap.exists()) {
             const sData = { id: snap.id, ...snap.data() };
             setStudent(sData);
 
-            const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
-            const activeSetId = systemConfig.activeExamSetId;
-            const isAllowed = canStudentEnterExam(sData.id, sData.classroom, systemConfig);
+	            const activeSubjectId = activeIdMatch(systemConfig.activeSubjectId);
+	            const activeSetId = systemConfig.activeExamSetId;
+	            const isAllowed = canStudentEnterExam(sData.id, sData.classroom, systemConfig);
+	            const isOpenWindowActive = systemConfig.isOpen && getExamRemainingSeconds(systemConfig) > 0;
 
-            // ต้องผ่านเงื่อนไข: ระบบเปิดสอบ + เลือกวิชาแล้ว + มีสิทธิ์เข้าสอบ
-            if (systemConfig.isOpen && activeSubjectId && activeSetId && isAllowed) {
+	            // ต้องผ่านเงื่อนไข: ระบบเปิดสอบ + เลือกวิชาแล้ว + มีสิทธิ์เข้าสอบ
+	            if (isOpenWindowActive && activeSubjectId && activeSetId && isAllowed) {
                 // ตรวจสอบว่าสอบแล้วหรือยัง
                 const submissionId = `${sData.id}_${activeSubjectId}_${activeSetId}`;
                 const existingSnap = await window.fb.getDoc(window.fb.doc(window.db, "submissions", submissionId));
@@ -1408,55 +1427,59 @@ const handleFileSelect = async (e) => {
                 // หากไม่ตรงเงื่อนไข ให้ส่งไปที่หน้า Waiting Room
                 setStep('waiting_room');
             }
-            
+
             showToast('เข้าสู่ระบบสำเร็จ');
         } else {
             setError('ไม่พบรหัสนักเรียนในระบบ');
         }
-    } catch (err) { 
+    } catch (err) {
         setError(err.message);
         showToast(err.message, 'error');
     }
     setLoading(false);
 };
             const startExam = async () => {
-    if (!systemConfig.isOpen) {
-        showToast('ระบบปิดการสอบอยู่', 'error');
-        return;
+	    if (!systemConfig.isOpen) {
+	        showToast('ระบบปิดการสอบอยู่', 'error');
+	        return;
+	    }
+	    if (getExamRemainingSeconds(systemConfig) <= 0) {
+	        showToast('หมดเวลาเปิดให้เข้าสอบแล้ว', 'error');
+	        return;
+	    }
+	    if (!currentExamSet) {
+	        showToast('ข้อมูลข้อสอบไม่พร้อม', 'error');
+	        return;
     }
-    if (!currentExamSet) {
-        showToast('ข้อมูลข้อสอบไม่พร้อม', 'error');
-        return;
-    }
-    
+
     setLoading(true);
     setLoadingMessage('กำลังเตรียมห้องสอบและบันทึกสถานะ...');
-    
+
     try {
         // --- ส่วนที่เพิ่มเข้ามา: บันทึกสถานะ IN_PROGRESS ลง Firestore ---
         await window.fb.setDoc(
-            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`), 
+            window.fb.doc(window.db, "submissions", `${student.id}_${currentSubject.id}_${currentExamSet.setId}`),
             {
-                studentId: student.id, 
+                studentId: student.id,
                 studentName: `${student.name} ${student.surname}`,
                 classroom: student.classroom || '',
                 subjectId: currentSubject.id,
                 subjectTitle: currentSubject.title,
                 examSetId: Number(currentExamSet.setId),
                 examSetTitle: currentExamSet.title,
-                status: 'IN_PROGRESS', 
+                status: 'IN_PROGRESS',
                 startedAt: new Date().toISOString(),
                 score: null // ยังไม่มีคะแนนจนกว่าจะส่ง
             },
             { merge: true } // ใช้ merge เพื่อไม่ให้ไปทับข้อมูลอื่นที่มีอยู่
         );
 
-        setTimeLeft(currentExamSet.timeLimit || 3600); 
-        setStep('exam'); 
+        setTimeLeft(currentExamSet.timeLimit || 3600);
+        setStep('exam');
         setExamStatus('active');
-        
+
         if (timerRef.current) clearInterval(timerRef.current);
-        
+
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -1467,7 +1490,7 @@ const handleFileSelect = async (e) => {
                 return prev - 1;
             });
         }, 1000);
-        
+
         showToast('เริ่มการสอบได้ ขอให้โชคดี');
     } catch (err) {
         console.error("Start Exam Error:", err);
@@ -1515,17 +1538,17 @@ const handleFileSelect = async (e) => {
             useEffect(() => {
                 const init = async () => {
                     await fetchAllData();
-                    
+
                     const adminDoc = await window.fb.getDoc(window.fb.doc(window.db, "config", "admin"));
                     if (!adminDoc.exists()) {
-                        await window.fb.setDoc(window.fb.doc(window.db, "config", "admin"), { 
-                            password: "admin1234" 
+                        await window.fb.setDoc(window.fb.doc(window.db, "config", "admin"), {
+                            password: "admin1234"
                         });
                     }
                 };
-                
+
                 init();
-                
+
                 const unsubConfig = window.fb.onSnapshot(
                     window.fb.doc(window.db, "config", "system"),
                     (doc) => {
@@ -1541,16 +1564,16 @@ const handleFileSelect = async (e) => {
                         }
                     }
                 );
-                
+
                 const unsubAdmin = window.fb.onSnapshot(
-                    window.fb.doc(window.db, "config", "admin"), 
+                    window.fb.doc(window.db, "config", "admin"),
                     (doc) => {
                         if (doc.exists()) setAdminGlobalPassword(doc.data().password);
                     }
                 );
-                
+
                 unsubscribers.current.push(unsubConfig, unsubAdmin);
-                
+
                 return () => {
                     cleanupListeners();
                 };
@@ -1627,6 +1650,7 @@ const handleFileSelect = async (e) => {
 useEffect(() => {
     const autoRedirect = async () => {
         if (step !== 'waiting_room' || !systemConfig.isOpen || !systemConfig.activeSubjectId || !student) return;
+        if (getExamRemainingSeconds(systemConfig) <= 0) return;
 
         const isAllowed = canStudentEnterExam(student.id, student.classroom, systemConfig);
 
@@ -1698,23 +1722,48 @@ useEffect(() => {
                 systemConfig.customTimeLimit,
                 autoCloseExpiredExam
             ]);
+
+            useEffect(() => {
+                if (step !== 'exam' || examStatus !== 'active') return;
+
+                const submitIfOpenWindowEnded = () => {
+                    const remaining = getExamRemainingSeconds(systemConfig);
+                    if (!systemConfig.isOpen || remaining <= 0) {
+                        if (systemConfig.isOpen && remaining <= 0) {
+                            autoCloseExpiredExam();
+                        }
+                        submitExamRef.current?.('หมดเวลาเปิดระบบ');
+                    }
+                };
+
+                submitIfOpenWindowEnded();
+                const openWindowGuard = setInterval(submitIfOpenWindowEnded, 1000);
+                return () => clearInterval(openWindowGuard);
+            }, [
+                step,
+                examStatus,
+                systemConfig.isOpen,
+                systemConfig.examStartMs,
+                systemConfig.customTimeLimit,
+                autoCloseExpiredExam
+            ]);
             // Anti-Cheat
             useEffect(() => {
                 if (step !== 'exam' || examStatus !== 'active') return;
-                
+
                 const handleCheat = () => {
                     setWarningCount(prev => {
                         const next = prev + 1;
-                        if (next <= 2) { 
-                            showToast(`⚠️ คำเตือน ${next}/2: ห้ามสลับหน้าจอหรือพับแท็บเด็ดขาด!`, 'error'); 
-                            return next; 
-                        } else { 
-                            submitExam('สลับหน้าจอเกินกำหนด', true); 
-                            return next; 
+                        if (next <= 2) {
+                            showToast(`⚠️ คำเตือน ${next}/2: ห้ามสลับหน้าจอหรือพับแท็บเด็ดขาด!`, 'error');
+                            return next;
+                        } else {
+                            submitExam('สลับหน้าจอเกินกำหนด', true);
+                            return next;
                         }
                     });
                 };
-                
+
                 const handleVisibility = () => {
                     if (document.hidden) handleCheat();
                 };
@@ -1746,14 +1795,14 @@ useEffect(() => {
                 if (newExamSet.questions.length > 0) {
                     const lastQuestion = newExamSet.questions[newExamSet.questions.length - 1];
                     const optionCount = lastQuestion.options.filter(o => o && o.trim() !== '').length;
-                    
+
                     if (optionCount < 2) {
                         showToast('⚠️ ข้อสอบบางข้อมีตัวเลือกน้อยกว่า 2 ตัวเลือก กรุณาตรวจสอบ', 'error');
                     }
                 }
             }, [newExamSet.questions]);
-            
-            
+
+
             // ✅ useEffect สำหรับโหลดข้อมูลเมื่อเข้าสู่หน้า manage_exams
             useEffect(() => {
                 if (step === 'admin_dashboard' && adminTab === 'manage_exams') {
@@ -1761,20 +1810,34 @@ useEffect(() => {
                 }
             }, [step, adminTab]);
 
-            // sync เวลาสอบใน input ให้ตรงกับชุดข้อสอบที่เลือก
+            // sync เวลาใน input ให้ตรงกับระบบและชุดข้อสอบที่เลือก
             useEffect(() => {
                 if (systemConfig.activeSubjectId && systemConfig.activeExamSetId) {
                     if (systemConfig.customTimeLimit) {
-                        setAdminTimeLimitInput(systemConfig.customTimeLimit / 60);
-                        return;
+                        setAdminOpenWindowInput(systemConfig.customTimeLimit / 60);
                     }
+                    if (systemConfig.examDurationLimit) {
+                        setAdminExamDurationInput(systemConfig.examDurationLimit / 60);
+                    }
+
                     const sets = examSets[systemConfig.activeSubjectId] || [];
                     const selectedSet = sets.find(s => Number(s.setId) === Number(systemConfig.activeExamSetId));
                     if (selectedSet) {
-                        setAdminTimeLimitInput(selectedSet.timeLimit / 60);
+                        if (!systemConfig.customTimeLimit) {
+                            setAdminOpenWindowInput(selectedSet.timeLimit / 60);
+                        }
+                        if (!systemConfig.examDurationLimit) {
+                            setAdminExamDurationInput(selectedSet.timeLimit / 60);
+                        }
                     }
                 }
-            }, [systemConfig.activeSubjectId, systemConfig.activeExamSetId, systemConfig.customTimeLimit, examSets]);
+            }, [
+                systemConfig.activeSubjectId,
+                systemConfig.activeExamSetId,
+                systemConfig.customTimeLimit,
+                systemConfig.examDurationLimit,
+                examSets
+            ]);
 
 
             // Manage Students Tab
@@ -1806,7 +1869,7 @@ useEffect(() => {
                             </button>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white border-2 border-slate-50 rounded-[3rem] overflow-hidden shadow-xl">
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase border-b">
@@ -1825,14 +1888,14 @@ useEffect(() => {
                                         <td className="p-6 text-center font-black text-slate-400 text-lg">ห้อง {std.classroom}</td>
                                         <td className="p-6 text-right">
                                             <div className="flex gap-2 justify-end">
-                                                <button 
-                                                    onClick={() => setEditingStudent(std)} 
+                                                <button
+                                                    onClick={() => setEditingStudent(std)}
                                                     className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-600 transition-all shadow-sm"
                                                 >
                                                     <Edit size={20}/>
                                                 </button>
-                                                <button 
-                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', itemId: std.id, setId: null })} 
+                                                <button
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'student', itemId: std.id, setId: null })}
                                                     className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-red-500 transition-all shadow-sm"
                                                 >
                                                     <Trash size={20}/>
@@ -1853,9 +1916,9 @@ useEffect(() => {
                     <h3 className="font-black text-2xl border-b-2 border-slate-50 pb-4 flex items-center gap-3 uppercase tracking-tighter">
                         <List size={28} className="text-blue-600"/> จัดการวิชาและข้อสอบ
                     </h3>
-                    
+
                     <div className="flex justify-end">
-                        <button 
+                        <button
                             onClick={() => {
                                 setLoading(true);
                                 fetchAllData().then(() => {
@@ -1867,12 +1930,12 @@ useEffect(() => {
                             <RefreshCw size={18}/> รีเฟรชข้อมูล
                         </button>
                     </div>
-                    
+
                     <div className="space-y-6">
                         {subjects.length > 0 ? (
                             subjects.map(subject => {
                                 const subjectExamSets = examSets[subject.id] || [];
-                                
+
                                 return (
                                     <div key={subject.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
                                         <div className="flex justify-between items-center mb-6">
@@ -1881,18 +1944,18 @@ useEffect(() => {
                                                 <p className="text-sm text-slate-400 font-black">รหัสวิชา: {subject.id}</p>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         setSelectedSubjectId(subject.id);
                                                         setAdminTab('create_exam');
-                                                    }} 
+                                                    }}
                                                     className="p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"
                                                     title="เพิ่มชุดข้อสอบ"
                                                 >
                                                     <Plus size={20}/>
                                                 </button>
-                                                <button 
-                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', itemId: subject.id, setId: null })} 
+                                                <button
+                                                    onClick={() => setConfirmDelete({ isOpen: true, type: 'subject', itemId: subject.id, setId: null })}
                                                     className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all"
                                                     title="ลบวิชา"
                                                 >
@@ -1900,12 +1963,12 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="space-y-4">
                                             <h5 className="font-black text-sm text-slate-400 uppercase tracking-wider">
                                                 ชุดข้อสอบทั้งหมด ({subjectExamSets.length})
                                             </h5>
-                                            
+
                                             {subjectExamSets.length > 0 ? (
                                                 <div className="grid grid-cols-1 gap-4">
                                                     {subjectExamSets.map(set => (
@@ -1926,28 +1989,28 @@ useEffect(() => {
                                                                     )}
                                                                 </div>
                                                                 <div className="flex gap-2">
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => {
                                                                             setEditingExam(set);
                                                                             setEditingExamSet({ subjectId: subject.id, setId: set.setId });
-                                                                        }} 
+                                                                        }}
                                                                         className="p-3 bg-white text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
                                                                         title="แก้ไข"
                                                                     >
                                                                         <Edit size={18}/>
                                                                     </button>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => {
                                                                             setViewingExam({ ...set, id: subject.id });
                                                                             setViewingExamSet({ subjectId: subject.id, setId: set.setId });
-                                                                        }} 
+                                                                        }}
                                                                         className="p-3 bg-white text-slate-600 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
                                                                         title="ดูตัวอย่าง"
                                                                     >
                                                                         <Eye size={18}/>
                                                                     </button>
-                                                                    <button 
-                                                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', itemId: subject.id, setId: set.setId })} 
+                                                                    <button
+                                                                        onClick={() => setConfirmDelete({ isOpen: true, type: 'examSet', itemId: subject.id, setId: set.setId })}
                                                                         className="p-3 bg-white text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
                                                                         title="ลบ"
                                                                     >
@@ -1961,7 +2024,7 @@ useEffect(() => {
                                             ) : (
                                                 <div className="text-center p-8 bg-slate-50 rounded-2xl border-2 border-dashed">
                                                     <p className="text-slate-400 font-black">ยังไม่มีชุดข้อสอบ</p>
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
                                                             setSelectedSubjectId(subject.id);
                                                             setAdminTab('create_exam');
@@ -1980,7 +2043,7 @@ useEffect(() => {
                             <div className="text-center p-12 bg-slate-50 rounded-3xl border-2 border-dashed">
                                 <p className="text-slate-400 font-black text-lg">ยังไม่มีวิชาในระบบ</p>
                                 <p className="text-sm text-slate-300 mt-2">ไปที่แท็บ "สร้างข้อสอบ" เพื่อเพิ่มวิชาและชุดข้อสอบ</p>
-                                <button 
+                                <button
                                     onClick={() => setAdminTab('create_exam')}
                                     className="mt-6 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 transition-all"
                                 >
@@ -2000,22 +2063,22 @@ useEffect(() => {
                             <Plus size={24} className="text-blue-600"/> สร้างวิชาใหม่
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <input 
-                                type="text" 
-                                placeholder="รหัสวิชา (เช่น MATH101)" 
-                                value={newSubject.id} 
-                                onChange={e => setNewSubject({...newSubject, id: e.target.value})} 
-                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white" 
+                            <input
+                                type="text"
+                                placeholder="รหัสวิชา (เช่น MATH101)"
+                                value={newSubject.id}
+                                onChange={e => setNewSubject({...newSubject, id: e.target.value})}
+                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white"
                             />
-                            <input 
-                                type="text" 
-                                placeholder="ชื่อวิชา" 
-                                value={newSubject.title} 
-                                onChange={e => setNewSubject({...newSubject, title: e.target.value})} 
-                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white" 
+                            <input
+                                type="text"
+                                placeholder="ชื่อวิชา"
+                                value={newSubject.title}
+                                onChange={e => setNewSubject({...newSubject, title: e.target.value})}
+                                className="w-full p-4 border-2 border-white rounded-2xl font-black bg-white"
                             />
-                            <button 
-                                onClick={handleCreateSubject} 
+                            <button
+                                onClick={handleCreateSubject}
                                 className="md:col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition-all"
                             >
                                 สร้างวิชา
@@ -2025,8 +2088,8 @@ useEffect(() => {
 
                     <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50">
                         <h3 className="font-black text-xl mb-6">เลือกวิชาสำหรับสร้างชุดข้อสอบ</h3>
-                        <select 
-                            value={selectedSubjectId} 
+                        <select
+                            value={selectedSubjectId}
                             onChange={e => setSelectedSubjectId(e.target.value)}
                             className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50 mb-6"
                         >
@@ -2037,7 +2100,7 @@ useEffect(() => {
                                 </option>
                             ))}
                         </select>
-                        
+
                         {selectedSubjectId && (
                             <>
                                 <div className="bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-100 flex items-center justify-between mb-6">
@@ -2051,7 +2114,7 @@ useEffect(() => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button 
+                                        <button
                                             onClick={showFileFormatExample}
                                             className="bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black hover:bg-slate-300 transition-all text-sm flex items-center gap-1"
                                             title="ดูตัวอย่างรูปแบบไฟล์"
@@ -2066,45 +2129,45 @@ useEffect(() => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                    <input 
-                                        type="text" 
-                                        placeholder="ชื่อชุดข้อสอบ" 
-                                        value={newExamSet.title} 
-                                        onChange={e => setNewExamSet({...newExamSet, title: e.target.value})} 
-                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                    <input
+                                        type="text"
+                                        placeholder="ชื่อชุดข้อสอบ"
+                                        value={newExamSet.title}
+                                        onChange={e => setNewExamSet({...newExamSet, title: e.target.value})}
+                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50"
                                     />
-                                    <input 
-                                        type="number" 
-                                        placeholder="เวลา (นาที)" 
-                                        value={newExamSet.time} 
-                                        onChange={e => setNewExamSet({...newExamSet, time: parseInt(e.target.value) || 0})} 
-                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50" 
+                                    <input
+                                        type="number"
+                                        placeholder="เวลา (นาที)"
+                                        value={newExamSet.time}
+                                        onChange={e => setNewExamSet({...newExamSet, time: parseInt(e.target.value) || 0})}
+                                        className="w-full p-4 border-2 border-slate-50 rounded-2xl font-black bg-slate-50"
                                         min="1"
                                     />
                                 </div>
 
                                 <div className="bg-slate-50 p-6 rounded-3xl space-y-6">
                                     <h4 className="font-black">สร้างข้อสอบ</h4>
-                                    
-                                    <input 
-                                        type="text" 
-                                        placeholder="หัวข้อส่วน (ถ้ามี)" 
-                                        value={qDraft.sectionTitle} 
-                                        onChange={e => setQDraft({...qDraft, sectionTitle: e.target.value})} 
-                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold" 
+
+                                    <input
+                                        type="text"
+                                        placeholder="หัวข้อส่วน (ถ้ามี)"
+                                        value={qDraft.sectionTitle}
+                                        onChange={e => setQDraft({...qDraft, sectionTitle: e.target.value})}
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold"
                                     />
-                                    
-                                    <textarea 
-                                        rows="2" 
-                                        placeholder="บทอ่าน (ถ้ามี)" 
-                                        value={qDraft.passage} 
-                                        onChange={e => setQDraft({...qDraft, passage: e.target.value})} 
-                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold" 
+
+                                    <textarea
+                                        rows="2"
+                                        placeholder="บทอ่าน (ถ้ามี)"
+                                        value={qDraft.passage}
+                                        onChange={e => setQDraft({...qDraft, passage: e.target.value})}
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-bold"
                                     />
-                                    
+
                                     <div className="flex gap-4">
-                                        <select 
-                                            value={qDraft.passagePosition} 
+                                        <select
+                                            value={qDraft.passagePosition}
                                             onChange={e => setQDraft({...qDraft, passagePosition: e.target.value})}
                                             className="p-3 border-2 border-white rounded-xl bg-white font-bold"
                                         >
@@ -2112,52 +2175,52 @@ useEffect(() => {
                                             <option value="bottom">แสดงด้านล่าง</option>
                                         </select>
                                     </div>
-                                    
-                                    <input 
-                                        type="text" 
-                                        placeholder="โจทย์ข้อสอบ" 
-                                        value={qDraft.text} 
-                                        onChange={e => setQDraft({...qDraft, text: e.target.value})} 
-                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-black text-lg" 
+
+                                    <input
+                                        type="text"
+                                        placeholder="โจทย์ข้อสอบ"
+                                        value={qDraft.text}
+                                        onChange={e => setQDraft({...qDraft, text: e.target.value})}
+                                        className="w-full p-4 border-2 border-white rounded-2xl bg-white font-black text-lg"
                                     />
-                                    
+
                                     <div className="space-y-3">
                                         {qDraft.options.map((opt, i) => (
                                             <div key={i} className="flex gap-3 items-center">
-                                                <input 
-                                                    type="radio" 
-                                                    checked={qDraft.correct === i} 
-                                                    onChange={() => setQDraft({...qDraft, correct: i})} 
-                                                    className="w-5 h-5 accent-green-600" 
+                                                <input
+                                                    type="radio"
+                                                    checked={qDraft.correct === i}
+                                                    onChange={() => setQDraft({...qDraft, correct: i})}
+                                                    className="w-5 h-5 accent-green-600"
                                                 />
-                                                <input 
-                                                    type="text" 
-                                                    value={opt} 
+                                                <input
+                                                    type="text"
+                                                    value={opt}
                                                     onChange={e => {
                                                         const n = [...qDraft.options];
                                                         n[i] = e.target.value;
                                                         setQDraft({...qDraft, options: n});
-                                                    }} 
+                                                    }}
                                                     className={`flex-1 p-3 border-2 rounded-xl font-bold ${
                                                         qDraft.correct === i ? 'bg-green-50 border-green-400' : 'bg-white border-slate-200'
                                                     }`}
-                                                    placeholder={`ตัวเลือก ${i + 1}`} 
+                                                    placeholder={`ตัวเลือก ${i + 1}`}
                                                 />
                                             </div>
                                         ))}
-                                        
+
                                         {qDraft.options.length < 6 && (
-                                            <button 
-                                                onClick={() => setQDraft(p => ({...p, options: [...p.options, '']}))} 
+                                            <button
+                                                onClick={() => setQDraft(p => ({...p, options: [...p.options, '']}))}
                                                 className="text-sm text-blue-600 font-black"
                                             >
                                                 + เพิ่มตัวเลือก
                                             </button>
                                         )}
                                     </div>
-                                    
-                                    <button 
-                                        onClick={addQuestionToDraft} 
+
+                                    <button
+                                        onClick={addQuestionToDraft}
                                         className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black hover:bg-black transition-all flex items-center justify-center gap-2"
                                     >
                                         <Plus size={20}/> เพิ่มข้อสอบ ({newExamSet.questions.length})
@@ -2165,8 +2228,8 @@ useEffect(() => {
                                 </div>
 
                                 {newExamSet.questions.length > 0 && (
-                                    <button 
-                                        onClick={handleCreateExamSet} 
+                                    <button
+                                        onClick={handleCreateExamSet}
                                         className="w-full bg-green-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-green-700 transition-all mt-6"
                                     >
                                         บันทึกชุดข้อสอบ
@@ -2182,71 +2245,71 @@ useEffect(() => {
                 <div className="min-h-screen text-slate-800 selection:bg-blue-100">
                     {loading && <LoadingOverlay message={loadingMessage} />}
                     {isBlackout && <BlackoutOverlay />}
-                    
-                    <ConfirmDialog 
+
+                    <ConfirmDialog
                         isOpen={confirmDelete.isOpen}
                         title="ยืนยันการลบ"
                         message="คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถเรียกคืนได้"
                         onConfirm={handleDeleteConfirm}
                         onCancel={() => setConfirmDelete({ isOpen: false, type: '', itemId: null, setId: null })}
                     />
-                    
+
                     {toast.show && (
-                        <Toast 
-                            message={toast.message} 
-                            type={toast.type} 
+                        <Toast
+                            message={toast.message}
+                            type={toast.type}
                             onClose={() => setToast({ show: false, message: '', type: 'success' })}
                         />
                     )}
-                    
+
                     {/* Modals */}
                     {editingExam && editingExamSet && (
-                        <EditExamModal 
-                            exam={{ ...editingExam, id: editingExamSet.subjectId }} 
+                        <EditExamModal
+                            exam={{ ...editingExam, id: editingExamSet.subjectId }}
                             examSet={{ setId: editingExamSet.setId }}
                             onClose={() => {
                                 setEditingExam(null);
                                 setEditingExamSet(null);
-                            }} 
+                            }}
                             onSave={async (subjectId, setId, updateData) => {
                                 setLoading(true);
                                 setLoadingMessage('กำลังบันทึกการเปลี่ยนแปลง...');
-                                try { 
+                                try {
                                     await window.fb.updateDoc(
-                                        window.fb.doc(window.db, "subjects", subjectId, "examSets", setId.toString()), 
-                                        { 
-                                            title: updateData.title, 
-                                            timeLimit: updateData.time, 
-                                            questions: updateData.questions 
+                                        window.fb.doc(window.db, "subjects", subjectId, "examSets", setId.toString()),
+                                        {
+                                            title: updateData.title,
+                                            timeLimit: updateData.time,
+                                            questions: updateData.questions
                                         }
-                                    ); 
-                                    showToast('บันทึกการเปลี่ยนแปลงเรียบร้อย'); 
-                                    setEditingExam(null); 
+                                    );
+                                    showToast('บันทึกการเปลี่ยนแปลงเรียบร้อย');
+                                    setEditingExam(null);
                                     setEditingExamSet(null);
-                                    await fetchAllData(); 
-                                } catch (err) { 
+                                    await fetchAllData();
+                                } catch (err) {
                                     showToast(err.message, 'error');
                                 }
                                 setLoading(false);
-                            }} 
+                            }}
                         />
                     )}
-                    
+
                     {viewingExam && (
-                        <ViewExamModal 
-                            exam={viewingExam} 
+                        <ViewExamModal
+                            exam={viewingExam}
                             examSet={viewingExamSet}
                             onClose={() => {
                                 setViewingExam(null);
                                 setViewingExamSet(null);
-                            }} 
+                            }}
                         />
                     )}
-                    
+
                     {editingStudent !== null && (
-                        <EditStudentModal 
-                            student={editingStudent} 
-                            onClose={() => setEditingStudent(null)} 
+                        <EditStudentModal
+                            student={editingStudent}
+                            onClose={() => setEditingStudent(null)}
                             onSave={async (data) => {
                                 if (!data.id || !data.id.trim()) {
                                     showToast('กรุณากรอกรหัสนักเรียน', 'error');
@@ -2256,27 +2319,27 @@ useEffect(() => {
                                     showToast('กรุณากรอกชื่อ', 'error');
                                     return;
                                 }
-                                
-                                setLoading(true); 
+
+                                setLoading(true);
                                 setLoadingMessage('กำลังบันทึกข้อมูล...');
-                                
+
                                 try {
                                     await window.fb.setDoc(
-                                        window.fb.doc(window.db, "students", data.id.trim()), 
-                                        { 
-                                            name: data.name, 
-                                            surname: data.surname, 
-                                            classroom: data.classroom 
+                                        window.fb.doc(window.db, "students", data.id.trim()),
+                                        {
+                                            name: data.name,
+                                            surname: data.surname,
+                                            classroom: data.classroom
                                         }
                                     );
-                                    setEditingStudent(null); 
+                                    setEditingStudent(null);
                                     showToast('บันทึกข้อมูลเรียบร้อย');
                                 } catch (err) {
                                     showToast(err.message, 'error');
                                 }
-                                
+
                                 setLoading(false);
-                            }} 
+                            }}
                         />
                     )}
 
@@ -2291,14 +2354,14 @@ useEffect(() => {
                                 <form onSubmit={handleStudentLogin} className="space-y-6">
                                     <div className="text-left">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">รหัสนักเรียน</label>
-                                        <input 
-                                            type="text" 
-                                            value={studentIdInput} 
-                                            onChange={(e) => setStudentIdInput(e.target.value)} 
-                                            className="w-full p-5 border-2 border-slate-50 rounded-2xl text-center text-2xl tracking-widest outline-none font-black bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-100" 
-                                            placeholder="00000" 
-                                            required 
-                                            autoFocus 
+                                        <input
+                                            type="text"
+                                            value={studentIdInput}
+                                            onChange={(e) => setStudentIdInput(e.target.value)}
+                                            className="w-full p-5 border-2 border-slate-50 rounded-2xl text-center text-2xl tracking-widest outline-none font-black bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                                            placeholder="00000"
+                                            required
+                                            autoFocus
                                         />
                                     </div>
                                     {error && (
@@ -2320,18 +2383,18 @@ useEffect(() => {
                             <div className="glass-card p-10 rounded-3xl w-full max-w-sm text-center shadow-2xl border-white border-2">
                                 <LogoHeader title="Admin Access" subtitle="AUTHENTICATION" />
                                 <form onSubmit={e => {
-                                    e.preventDefault(); 
-                                    if(adminPassword === adminGlobalPassword) { 
-                                        setStep('admin_dashboard'); 
-                                        showToast('เข้าสู่ระบบแอดมินสำเร็จ'); 
+                                    e.preventDefault();
+                                    if(adminPassword === adminGlobalPassword) {
+                                        setStep('admin_dashboard');
+                                        showToast('เข้าสู่ระบบแอดมินสำเร็จ');
                                     } else showToast('รหัสผ่านไม่ถูกต้อง', 'error');
                                 }} className="space-y-4">
-                                    <input 
-                                        type="password" 
-                                        value={adminPassword} 
-                                        onChange={e => setAdminPassword(e.target.value)} 
-                                        className="w-full p-4 border rounded-2xl text-center outline-none focus:ring-2 focus:ring-slate-800 text-lg font-bold bg-slate-50" 
-                                        placeholder="รหัสผ่าน" 
+                                    <input
+                                        type="password"
+                                        value={adminPassword}
+                                        onChange={e => setAdminPassword(e.target.value)}
+                                        className="w-full p-4 border rounded-2xl text-center outline-none focus:ring-2 focus:ring-slate-800 text-lg font-bold bg-slate-50"
+                                        placeholder="รหัสผ่าน"
                                         autoFocus
                                     />
                                     <button className="w-full bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-black transition-all text-lg uppercase">
@@ -2379,13 +2442,23 @@ useEffect(() => {
         <div className="glass-card p-12 rounded-[3.5rem] w-full max-w-md shadow-2xl text-center border-white border-2">
             <h2 className="text-4xl font-black mb-10 uppercase">ห้องรอสอบ</h2>
 
-            {(() => {
-                const isAllowed = student ? canStudentEnterExam(student.id, student.classroom, systemConfig) : false;
+	            {(() => {
+	                const isAllowed = student ? canStudentEnterExam(student.id, student.classroom, systemConfig) : false;
+	                const isOpenWindowActive = systemConfig.isOpen && getExamRemainingSeconds(systemConfig) > 0;
 
-                if (systemConfig.isOpen && !isAllowed) {
-                    const msg = systemConfig.filterMode === 'individual'
-                        ? 'คุณไม่ได้รับการกำหนดให้เข้าสอบในรอบนี้'
-                        : `วิชานี้เปิดให้เฉพาะห้อง ${systemConfig.activeClassroom} เข้าสอบในขณะนี้`;
+	                if (systemConfig.isOpen && !isOpenWindowActive) {
+	                    return (
+	                        <div className="mb-10 p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] animate-shake">
+	                            <div className="text-red-600 font-black text-2xl mb-2">หมดเวลาเข้าสอบ</div>
+	                            <div className="text-red-400 font-bold">กรุณาติดต่อผู้ดูแลระบบ</div>
+	                        </div>
+	                    );
+	                }
+
+	                if (isOpenWindowActive && !isAllowed) {
+	                    const msg = systemConfig.filterMode === 'individual'
+	                        ? 'คุณไม่ได้รับการกำหนดให้เข้าสอบในรอบนี้'
+	                        : `วิชานี้เปิดให้เฉพาะห้อง ${systemConfig.activeClassroom} เข้าสอบในขณะนี้`;
                     return (
                         <div className="mb-10 p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] animate-shake">
                             <div className="text-red-600 font-black text-2xl mb-2">❌ ไม่มีสิทธิ์สอบ</div>
@@ -2407,10 +2480,10 @@ useEffect(() => {
                 {currentSubject?.title || 'รออาจารย์เลือกวิชา...'}
             </div>
 
-            <p className="mt-8 text-sm text-slate-400 italic">
-                {systemConfig.isOpen && student && canStudentEnterExam(student.id, student.classroom, systemConfig)
-                    ? 'สิทธิ์ถูกต้อง ระบบกำลังพาคุณเข้าสอบ...'
-                    : 'รอระบบเปิดและตรวจสอบสิทธิ์อัตโนมัติ'}
+	            <p className="mt-8 text-sm text-slate-400 italic">
+	                {systemConfig.isOpen && getExamRemainingSeconds(systemConfig) > 0 && student && canStudentEnterExam(student.id, student.classroom, systemConfig)
+	                    ? 'สิทธิ์ถูกต้อง ระบบกำลังพาคุณเข้าสอบ...'
+	                    : 'รอระบบเปิดและตรวจสอบสิทธิ์อัตโนมัติ'}
             </p>
         </div>
     </div>
@@ -2432,24 +2505,24 @@ useEffect(() => {
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div className="space-y-4 mb-10 text-slate-700 text-sm sm:text-base">
                                     <div className="flex gap-5 items-center p-6 bg-red-50 text-red-700 rounded-3xl border-2 border-red-100 font-black shadow-sm">
-                                        <XCircle size={24} className="shrink-0"/> 
+                                        <XCircle size={24} className="shrink-0"/>
                                         ห้ามสลับหน้าจอหรือพับแท็บโดยเด็ดขาด
                                     </div>
                                     <div className="flex gap-5 items-center p-6 bg-orange-50 text-orange-700 rounded-3xl border-2 border-orange-100 font-black shadow-sm">
-                                        <AlertTriangle size={24} className="shrink-0"/> 
+                                        <AlertTriangle size={24} className="shrink-0"/>
                                         ห้ามบันทึกภาพหน้าจอ ระบบจะตัดสิทธิ์การสอบทันที
                                     </div>
                                     <div className="flex gap-5 items-center p-6 bg-blue-50 text-blue-700 rounded-3xl border-2 border-blue-100 font-black shadow-sm">
-                                        <Clock size={24} className="shrink-0"/> 
+                                        <Clock size={24} className="shrink-0"/>
                                         เวลาสอบ: {currentExamSet.timeLimit / 60} นาที
                                     </div>
                                 </div>
-                                
-                                <button 
-                                    onClick={startExam} 
+
+                                <button
+                                    onClick={startExam}
                                     className="w-full bg-slate-800 text-white py-6 rounded-3xl font-black text-2xl shadow-xl hover:bg-black transition-all active:scale-95 uppercase tracking-wider"
                                 >
                                     เริ่มสอบ
@@ -2462,7 +2535,7 @@ useEffect(() => {
                     {step === 'exam' && currentExamSet && currentSubject && (
                         <div className="min-h-screen bg-slate-100 pb-32 animate-fade-in">
                             <Watermark text={`${student?.id} - ${student?.name}`} />
-                            
+
                             <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b z-20 shadow-md">
                                 <div className="px-4 md:px-8 py-4 md:py-5 flex justify-between items-center">
                                     <div className="flex items-center gap-4">
@@ -2473,17 +2546,17 @@ useEffect(() => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 md:gap-4">
-                                        <button 
+                                        <button
                                             onClick={() => {
-                                                if(confirm(`ยืนยันส่งกระดาษคำตอบ?\nคุณตอบไปแล้ว ${currentExamSet.questions.filter(q => answers[q.id] !== undefined).length} จาก ${currentExamSet.questions.length} ข้อ`)) 
+                                                if(confirm(`ยืนยันส่งกระดาษคำตอบ?\nคุณตอบไปแล้ว ${currentExamSet.questions.filter(q => answers[q.id] !== undefined).length} จาก ${currentExamSet.questions.length} ข้อ`))
                                                     submitExam('Manual Submit');
-                                            }} 
+                                            }}
                                             className="flex px-4 py-2 bg-red-600 text-white rounded-xl font-black text-xs uppercase items-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-sm"
                                         >
                                             <Send size={14}/> ส่งข้อสอบ
                                         </button>
                                         <div className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-mono font-black text-lg md:text-xl border-2 transition-colors ${
-                                            timeLeft < 300 
+                                            timeLeft < 300
                                                 ? 'bg-red-50 border-red-500 text-red-600 animate-pulse'
                                                 : 'bg-slate-800 border-slate-800 text-white'
                                         }`}>
@@ -2508,14 +2581,14 @@ useEffect(() => {
                                     </div>
                                     <div className="flex flex-wrap gap-1.5 md:gap-2">
                                         {currentExamSet.questions.map((q, idx) => (
-                                            <button 
-                                                key={idx} 
-                                                onClick={() => setCurrentQIdx(idx)} 
+                                            <button
+                                                key={idx}
+                                                onClick={() => setCurrentQIdx(idx)}
                                                 className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl font-black text-xs md:text-sm transition-all border-2 flex items-center justify-center ${
-                                                    currentQIdx === idx 
-                                                        ? 'border-blue-600 bg-blue-50 text-blue-600 scale-110 shadow-md ring-2 ring-blue-100' 
-                                                        : answers[q.id] !== undefined 
-                                                        ? 'bg-green-500 border-green-500 text-white' 
+                                                    currentQIdx === idx
+                                                        ? 'border-blue-600 bg-blue-50 text-blue-600 scale-110 shadow-md ring-2 ring-blue-100'
+                                                        : answers[q.id] !== undefined
+                                                        ? 'bg-green-500 border-green-500 text-white'
                                                         : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                                 }`}
                                             >
@@ -2530,49 +2603,49 @@ useEffect(() => {
                                     <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] text-[6rem] md:text-[12rem] font-black select-none pointer-events-none tracking-tighter leading-none">
                                         # {currentQIdx + 1}
                                     </div>
-                                    
+
                                     {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition !== 'bottom' && (
                                         <div className="bg-amber-50 border-l-[6px] md:border-l-[10px] border-amber-400 p-5 md:p-8 mb-6 md:mb-10 rounded-r-2xl md:rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-line font-bold text-base md:text-lg">
                                             <BookOpen size={20} className="inline mr-2 md:mr-4 mb-1 text-amber-600"/>
                                             {currentExamSet.questions[currentQIdx].passage}
                                         </div>
                                     )}
-                                    
+
                                     <div className="relative mb-8 md:mb-12">
                                         <h3 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-800 leading-relaxed tracking-tight whitespace-pre-line">
                                             {currentExamSet.questions[currentQIdx].text}
                                         </h3>
                                     </div>
-                                    
+
                                     {currentExamSet.questions[currentQIdx].passage && currentExamSet.questions[currentQIdx].passagePosition === 'bottom' && (
                                         <div className="bg-amber-50 border-l-[6px] md:border-l-[10px] border-amber-400 p-5 md:p-8 mb-8 md:mb-12 rounded-r-2xl md:rounded-r-[2.5rem] text-slate-700 italic whitespace-pre-line font-bold text-base md:text-lg">
                                             <BookOpen size={20} className="inline mr-2 md:mr-4 mb-1 text-amber-600"/>
                                             {currentExamSet.questions[currentQIdx].passage}
                                         </div>
                                     )}
-                                    
+
                                     <div className="grid gap-3 md:gap-5">
                                         {currentExamSet.questions[currentQIdx].options.map((opt, i) => {
                                             const optionMatch = opt.match(/^([A-D])\.\s*(.+)/);
                                             const optionLetter = optionMatch ? optionMatch[1] : String.fromCharCode(65 + i);
                                             const optionText = optionMatch ? optionMatch[2] : opt;
-                                            
+
                                             return (
-                                                <label 
-                                                    key={i} 
+                                                <label
+                                                    key={i}
                                                     className={`flex items-center p-4 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] cursor-pointer transition-all active:scale-[0.98] group ${
-                                                        answers[currentExamSet.questions[currentQIdx].id] === i 
+                                                        answers[currentExamSet.questions[currentQIdx].id] === i
                                                             ? 'bg-blue-600 border-blue-600 text-white shadow-lg md:shadow-2xl ring-4 md:ring-8 ring-blue-100 font-bold'
                                                             : 'bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-blue-100 hover:shadow-md'
                                                     }`}
                                                 >
-                                                    <input 
-                                                        type="radio" 
-                                                        className="hidden" 
+                                                    <input
+                                                        type="radio"
+                                                        className="hidden"
                                                         checked={answers[currentExamSet.questions[currentQIdx].id] === i}
                                                         onChange={() => {
                                                             setAnswers({
-                                                                ...answers, 
+                                                                ...answers,
                                                                 [currentExamSet.questions[currentQIdx].id]: i
                                                             });
                                                             answersRef.current = {
@@ -2597,31 +2670,31 @@ useEffect(() => {
 
                                 {/* ปุ่มกด ย้อนกลับ/ถัดไป (ส่วนที่หายไป) */}
                                 <div className="flex justify-between items-center px-2 md:px-4">
-                                    <button 
-                                        onClick={() => setCurrentQIdx(p => Math.max(0, p - 1))} 
-                                        disabled={currentQIdx === 0} 
+                                    <button
+                                        onClick={() => setCurrentQIdx(p => Math.max(0, p - 1))}
+                                        disabled={currentQIdx === 0}
                                         className="px-6 py-3 md:px-8 md:py-4 bg-white text-slate-600 border-2 border-slate-200 rounded-2xl md:rounded-3xl font-black disabled:opacity-30 hover:bg-slate-50 shadow-sm transition-all uppercase text-sm md:text-base"
                                     >
                                         ย้อนกลับ
                                     </button>
-                                    
+
                                     <div className="text-slate-400 font-black text-xs md:text-sm hidden sm:block uppercase tracking-tighter">
                                         ข้อที่ {currentQIdx + 1} / {currentExamSet.questions.length}
                                     </div>
-                                    
+
                                     {currentQIdx < currentExamSet.questions.length - 1 ? (
-                                        <button 
-                                            onClick={() => setCurrentQIdx(p => p + 1)} 
+                                        <button
+                                            onClick={() => setCurrentQIdx(p => p + 1)}
                                             className="px-8 py-3 md:px-10 md:py-4 bg-slate-800 text-white rounded-xl md:rounded-2xl font-black shadow-lg hover:bg-black transition-all active:scale-95 uppercase text-sm md:text-base"
                                         >
                                             ถัดไป
                                         </button>
                                     ) : (
-                                        <button 
+                                        <button
                                             onClick={() => {
-                                                if(confirm("ยืนยันส่งกระดาษคำตอบ?")) 
+                                                if(confirm("ยืนยันส่งกระดาษคำตอบ?"))
                                                     submitExam('User Submitted');
-                                            }} 
+                                            }}
                                             className="px-8 py-3 md:px-12 md:py-4 bg-green-600 text-white rounded-xl md:rounded-2xl font-black shadow-xl hover:bg-green-700 transition-all active:scale-95 uppercase text-sm md:text-lg"
                                         >
                                             ส่งข้อสอบ
@@ -2641,7 +2714,7 @@ useEffect(() => {
                                 </div>
                                 <h2 className="text-2xl md:text-3xl font-black mb-2 uppercase tracking-tighter text-slate-800">บันทึกคำตอบสำเร็จ</h2>
                                 <p className="text-slate-500 font-bold mb-8 uppercase tracking-widest text-[10px] md:text-xs">{currentSubject?.title}</p>
-                                
+
                                 <div className="bg-slate-900 text-white p-8 md:p-10 rounded-[2.5rem] shadow-xl mb-8 relative overflow-hidden">
                                     <div className="relative z-10">
                                         <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em] mb-2">คะแนนที่คุณได้</p>
@@ -2651,11 +2724,11 @@ useEffect(() => {
                                     </div>
                                     <div className="absolute -bottom-4 -right-4 text-white/5 text-8xl md:text-9xl font-black rotate-12">SCORE</div>
                                 </div>
-                                
+
                                 <p className="text-slate-400 text-xs md:text-sm font-bold mb-10">ระบบได้ทำการบันทึกคะแนนของคุณเรียบร้อยแล้ว<br/>คุณสามารถออกจากระบบได้ทันที</p>
-                                
-                                <button 
-                                    onClick={() => window.location.reload()} 
+
+                                <button
+                                    onClick={() => window.location.reload()}
                                     className="w-full py-4 md:py-5 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-sm md:text-base"
                                 >
                                     กลับสู่หน้าหลัก / ออกจากระบบ
@@ -2691,7 +2764,7 @@ useEffect(() => {
                                         <LogOut size={20}/>
                                     </button>
                                 </div>
-                                
+
                                 <div className="p-8 overflow-y-auto flex-1">
                                     {adminTab === 'dashboard' && (
                                         <div className="space-y-10">
@@ -2700,17 +2773,17 @@ useEffect(() => {
                                                     <h3 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-3">
                                                         <Shield className="text-blue-600" size={32}/> แผงควบคุม
                                                     </h3>
-                                                    
+
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                         <div>
     <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
         เลือกวิชา
     </label>
     <div className="relative">
-        
-<select 
-    value={systemConfig.activeSubjectId || ''} 
-    onChange={(e) => handleChangeSubject(e.target.value)} 
+
+<select
+    value={systemConfig.activeSubjectId || ''}
+    onChange={(e) => handleChangeSubject(e.target.value)}
     className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
 >
     <option value="" disabled>-- โปรดเลือกวิชา --</option>
@@ -2728,15 +2801,15 @@ useEffect(() => {
         <p className="text-xs text-red-500 mt-2">ยังไม่มีวิชาในระบบ กรุณาสร้างวิชาก่อน</p>
     )}
 </div>
-                                                        
+
                                                         <div>
     <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
         เลือกชุดข้อสอบ
     </label>
     <div className="relative">
-        <select 
-            value={systemConfig.activeExamSetId || ''} 
-            onChange={e => handleChangeExamSet(e.target.value)} 
+        <select
+            value={systemConfig.activeExamSetId || ''}
+            onChange={e => handleChangeExamSet(e.target.value)}
             className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl appearance-none shadow-sm"
             disabled={!systemConfig.activeSubjectId || currentSubjectExams.length === 0}
         >
@@ -2881,63 +2954,74 @@ useEffect(() => {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        
-                                                        <div>
-                                                            <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
-                                                                เวลาสอบ (นาที)
-                                                            </label>
-                                                            <input 
-                                                                type="number" 
-                                                                value={adminTimeLimitInput} 
-                                                                onChange={e => setAdminTimeLimitInput(e.target.value)} 
-                                                                className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl shadow-inner" 
-                                                                min="1"
-                                                            />
-                                                            <button
-                                                                onClick={handleSaveTimeLimit}
-                                                                disabled={isSavingTimeLimit}
-                                                                className="mt-3 w-full py-4 bg-blue-50 text-blue-700 border-2 border-blue-100 rounded-2xl font-black text-xs uppercase hover:bg-blue-100 transition-all disabled:opacity-50"
-                                                            >
-                                                                {isSavingTimeLimit ? 'กำลังบันทึก...' : 'บันทึกเวลา'}
-                                                            </button>
+
+	                                                        <div>
+	                                                            <label className="text-[10px] font-black text-slate-400 block mb-3 uppercase tracking-widest">
+	                                                                เวลาเปิดให้เข้าสอบ (นาที)
+	                                                            </label>
+	                                                            <input
+	                                                                type="number"
+	                                                                value={adminOpenWindowInput}
+	                                                                onChange={e => setAdminOpenWindowInput(e.target.value)}
+	                                                                className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl shadow-inner"
+	                                                                min="1"
+	                                                            />
+	                                                            <label className="text-[10px] font-black text-slate-400 block mt-5 mb-3 uppercase tracking-widest">
+	                                                                เวลาทำข้อสอบหลังเริ่มสอบ (นาที)
+	                                                            </label>
+	                                                            <input
+	                                                                type="number"
+	                                                                value={adminExamDurationInput}
+	                                                                onChange={e => setAdminExamDurationInput(e.target.value)}
+	                                                                className="w-full p-5 border-2 border-slate-50 rounded-3xl bg-slate-50 outline-none focus:border-blue-500 focus:bg-white font-black text-xl shadow-inner"
+	                                                                min="1"
+	                                                            />
+	                                                            <button
+	                                                                onClick={handleSaveTimeLimit}
+	                                                                disabled={isSavingTimeLimit}
+	                                                                className="mt-3 w-full py-4 bg-blue-50 text-blue-700 border-2 border-blue-100 rounded-2xl font-black text-xs uppercase hover:bg-blue-100 transition-all disabled:opacity-50"
+	                                                            >
+	                                                                {isSavingTimeLimit ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่าเวลา'}
+	                                                            </button>
                                                             {systemConfig.isOpen && (
                                                                 <div className={`mt-4 p-5 rounded-3xl border-2 text-center ${
                                                                     adminExamTimeLeft <= 300
                                                                         ? 'bg-red-50 border-red-100 text-red-600'
                                                                         : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                                                                 }`}>
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest mb-1">
-                                                                        เหลือเวลาเปิดสอบ
-                                                                    </p>
+	                                                                    <p className="text-[10px] font-black uppercase tracking-widest mb-1">
+	                                                                        เหลือเวลาเปิดให้เข้าสอบ
+	                                                                    </p>
                                                                     <p className="text-4xl font-mono font-black leading-none">
                                                                         {formatDuration(adminExamTimeLeft)}
                                                                     </p>
-                                                                    <p className="text-[10px] font-bold opacity-70 mt-2">
-                                                                        ครบเวลาแล้วระบบจะปิดการเข้าสอบอัตโนมัติ
-                                                                    </p>
+	                                                                    <p className="text-[10px] font-bold opacity-70 mt-2">
+	                                                                        ครบเวลาแล้วระบบจะปิดและสั่งส่งข้อสอบของผู้ที่กำลังสอบ
+	                                                                    </p>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="lg:col-span-4 space-y-6">
                                                     {selectedExamPreview ? (
                                                         <div className="bg-slate-900 text-white p-10 rounded-[3.5rem] shadow-2xl space-y-6 relative overflow-hidden">
                                                             <h4 className="text-3xl font-black leading-tight tracking-tight">
                                                                 {selectedExamPreview.title}
                                                             </h4>
-                                                            <div className="pt-6 border-t border-white/10 space-y-3">
-                                                                <p className="text-xs opacity-60">จำนวนข้อ: {selectedExamPreview.questions?.length || 0} ข้อ</p>
-                                                                <p className="text-xs opacity-60">เวลา: {(systemConfig.customTimeLimit || selectedExamPreview.timeLimit) / 60} นาที</p>
-                                                                {systemConfig.isOpen && (
-                                                                    <p className="text-xs font-black text-emerald-300">
-                                                                        เหลือเวลาเปิดสอบ: {formatDuration(adminExamTimeLeft)}
-                                                                    </p>
-                                                                )}
+	                                                            <div className="pt-6 border-t border-white/10 space-y-3">
+	                                                                <p className="text-xs opacity-60">จำนวนข้อ: {selectedExamPreview.questions?.length || 0} ข้อ</p>
+	                                                                <p className="text-xs opacity-60">เปิดให้เข้าสอบ: {(systemConfig.customTimeLimit || selectedExamPreview.timeLimit) / 60} นาที</p>
+	                                                                <p className="text-xs opacity-60">เวลาทำข้อสอบ: {(systemConfig.examDurationLimit || selectedExamPreview.timeLimit) / 60} นาที</p>
+	                                                                {systemConfig.isOpen && (
+	                                                                    <p className="text-xs font-black text-emerald-300">
+	                                                                        เหลือเวลาเปิดให้เข้าสอบ: {formatDuration(adminExamTimeLeft)}
+	                                                                    </p>
+	                                                                )}
                                                             </div>
-                                                            <button 
-                                                                onClick={() => handleToggleExam(!systemConfig.isOpen)} 
+                                                            <button
+                                                                onClick={() => handleToggleExam(!systemConfig.isOpen)}
                                                                 className={`w-full py-5 rounded-[2rem] font-black text-xl transition-all shadow-2xl active:scale-95 uppercase ${
                                                                     systemConfig.isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'
                                                                 }`}
@@ -2963,9 +3047,9 @@ useEffect(() => {
                                                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">
                                                                 แสดงห้อง:
                                                             </label>
-                                                            <select 
-                                                                value={monitorFilterRoom} 
-                                                                onChange={e => setMonitorFilterRoom(e.target.value)} 
+                                                            <select
+                                                                value={monitorFilterRoom}
+                                                                onChange={e => setMonitorFilterRoom(e.target.value)}
                                                                 className="bg-transparent font-black text-blue-600 outline-none text-sm cursor-pointer pr-4"
                                                             >
                                                                 <option value="All">ทุกห้องเรียน</option>
@@ -2977,9 +3061,9 @@ useEffect(() => {
                                                             </select>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div className="flex gap-2">
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 setLoading(true);
                                                                 fetchAllData().then(() => {
@@ -2991,8 +3075,8 @@ useEffect(() => {
                                                         >
                                                             <RefreshCw size={16}/> รีเฟรช
                                                         </button>
-                                                        <button 
-                                                            onClick={exportToCSV} 
+                                                        <button
+                                                            onClick={exportToCSV}
                                                             className="text-xs bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border-2 border-emerald-100 hover:bg-emerald-100 font-black uppercase flex items-center gap-2"
                                                         >
                                                             <Download size={18}/> ส่งออกรายงาน
@@ -3004,13 +3088,13 @@ useEffect(() => {
                                                     {dashboardData
                                                         .filter(d => monitorFilterRoom === 'All' || String(d.classroom).trim() === monitorFilterRoom.trim())
                                                         .map((d, i) => (
-                                                            <div 
-                                                                key={i} 
+                                                            <div
+                                                                key={i}
                                                                 className={`bg-white p-6 rounded-[2.5rem] border-2 flex flex-col justify-between shadow-sm transition-all hover:shadow-lg ${
-                                                                    d.status === 'COMPLETED' 
-                                                                        ? 'border-emerald-100 ring-4 ring-emerald-400/10' 
-                                                                        : d.status === 'IN_PROGRESS' 
-                                                                        ? 'border-blue-100 ring-4 ring-blue-400/10 animate-pulse' 
+                                                                    d.status === 'COMPLETED'
+                                                                        ? 'border-emerald-100 ring-4 ring-emerald-400/10'
+                                                                        : d.status === 'IN_PROGRESS'
+                                                                        ? 'border-blue-100 ring-4 ring-blue-400/10 animate-pulse'
                                                                         : 'border-slate-50 opacity-60'
                                                                 }`}
                                                             >
@@ -3019,18 +3103,18 @@ useEffect(() => {
                                                                         {d.id}
                                                                     </span>
                                                                     <div className="flex gap-1 items-center">
-                                                                        <button 
-                                                                            onClick={() => handleResetSubmission(d.id)} 
-                                                                            className="p-1 text-red-400 hover:text-red-600 transition-colors" 
+                                                                        <button
+                                                                            onClick={() => handleResetSubmission(d.id)}
+                                                                            className="p-1 text-red-400 hover:text-red-600 transition-colors"
                                                                             title="รีเซ็ตสถานะการสอบ"
                                                                         >
                                                                             <RefreshCw size={14}/>
                                                                         </button>
                                                                         <span className={`text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${
-                                                                            d.status === 'COMPLETED' 
-                                                                                ? 'bg-emerald-100 text-emerald-700' 
-                                                                                : d.status === 'IN_PROGRESS' 
-                                                                                ? 'bg-blue-100 text-blue-700' 
+                                                                            d.status === 'COMPLETED'
+                                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                                : d.status === 'IN_PROGRESS'
+                                                                                ? 'bg-blue-100 text-blue-700'
                                                                                 : 'bg-slate-100 text-slate-400'
                                                                         }`}>
                                                                             {d.status}
@@ -3068,7 +3152,7 @@ useEffect(() => {
                                     {adminTab === 'manage_students' && renderManageStudents()}
                                     {adminTab === 'manage_exams' && renderManageExams()}
                                     {adminTab === 'create_exam' && renderCreateExam()}
-                                    
+
                                     {adminTab === 'security' && (
                                         <div className="space-y-6">
                                             <div className="max-w-md mx-auto bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-xl">
@@ -3088,8 +3172,8 @@ useEffect(() => {
                                                             placeholder="รหัสผ่านใหม่"
                                                         />
                                                     </div>
-                                                    <button 
-                                                        onClick={handleChangeAdminPassword} 
+                                                    <button
+                                                        onClick={handleChangeAdminPassword}
                                                         className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-blue-700 transition-all uppercase"
                                                     >
                                                         เปลี่ยนรหัสผ่าน
@@ -3105,7 +3189,7 @@ useEffect(() => {
                 </div>
             );
         };
-    
+
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<SecureExamApp />);
